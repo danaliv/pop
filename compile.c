@@ -151,25 +151,9 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 			return C_OOM;
 		}
 
-		int res = addop(OP_PUSHS, dstp, lenp);
-		if (res) {
-			free(s);
-			return res;
-		}
-
-		uint8_t *dst = *dstp;
-		dst = realloc(dst, *lenp + strlen(s) + 1);
-		if (!dst) {
-			free(s);
-			--*lenp;
-			return C_OOM;
-		}
-		*dstp = dst;
-		memcpy(dst + *lenp, s, strlen(s) + 1);
-		*lenp += strlen(s) + 1;
-
+		int res = addopwopnd(OP_PUSHS, s, strlen(s) + 1, dstp, lenp);
 		free(s);
-		return C_OK;
+		return res;
 	}
 
 	// simple builtins
@@ -179,6 +163,7 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 	SIMPLE_OP("swap", OP_SWAP);
 	SIMPLE_OP("dup", OP_DUP);
 
+	// builtins implemented by C functions
 #define CALLC_OP(k, f) if (strkeq(k, tk, len)) { \
     callable *fp = &f; \
     return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
@@ -189,22 +174,7 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->ndefs; i++) {
 		if (strkeq(cu->defs[i].name, tk, len)) {
-			int res = addop(OP_CALLI, dstp, lenp);
-			if (res) {
-				return res;
-			}
-
-			uint8_t *dst = *dstp;
-			dst = realloc(dst, *lenp + strlen(cu->defs[i].name) + 1);
-			if (!dst) {
-				--*lenp;
-				return C_OOM;
-			}
-			*dstp = dst;
-			memcpy(dst + *lenp, cu->defs[i].name, strlen(cu->defs[i].name) + 1);
-			*lenp += strlen(cu->defs[i].name) + 1;
-
-			return C_OK;
+			return addopwopnd(OP_CALLI, cu->defs[i].name, strlen(cu->defs[i].name) + 1, dstp, lenp);
 		}
 	}
 
