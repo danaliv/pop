@@ -5,6 +5,8 @@
 #include "stack.h"
 
 int runv(cunit * cu, uint8_t * body, size_t len) {
+	int res;
+
 	for (size_t i = 0; i < len; i++) {
 		switch (body[i]) {
 		case OP_NONE:
@@ -26,21 +28,7 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 				i++;
 			}
 			break;
-		case OP_PUTS:
-			if (!stack) {
-				return E_EMPTY;
-			}
-			switch (stack->tp) {
-			case F_STR:
-				printf("%s\n", stack->s);
-				break;
-			case F_INT:
-				printf("%d\n", stack->i);
-				break;
-			}
-			pop();
-			break;
-		case OP_CALL:
+		case OP_CALLI:
 			if (i > len - 2) {
 				return E_NO_VAL;
 			}
@@ -58,6 +46,16 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 			while (body[i]) {
 				i++;
 			}
+			break;
+		case OP_CALLC:
+			if (i > len - (sizeof(callable *) + 1)) {
+				return E_NO_VAL;
+			}
+			res = (*(callable **) (&body[i + 1])) ();
+			if (res != E_OK) {
+				return res;
+			}
+			i += sizeof(callable *);
 			break;
 		}
 	}

@@ -8,10 +8,10 @@ enum {
 	OP_POP,
 	OP_SWAP,
 	OP_DUP,
-	OP_CALL,
 	OP_PUSHS,
 	OP_PUSHI,
-	OP_PUTS
+	OP_CALLI,
+	OP_CALLC
 };
 
 enum {
@@ -21,6 +21,8 @@ enum {
 	E_OOM,
 	E_UNDEF
 };
+
+typedef int callable(void);
 
 int run(cunit *);
 

@@ -5,6 +5,7 @@
 
 #include "compile.h"
 #include "exec.h"
+#include "builtins.h"
 
 cunit *newcunit() {
 	cunit *cu = malloc(sizeof(cunit));
@@ -45,10 +46,10 @@ bool strkeq(const char *k, char *s, size_t slen) {
 	return true;
 }
 
-int addop(uint8_t op, uint8_t ** dstp, size_t * lenp) {
+int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t ** dstp, size_t * lenp) {
 	uint8_t *dst = *dstp;
 
-	dst = realloc(dst, *lenp + 1);
+	dst = realloc(dst, *lenp + 1 + opndlen);
 	if (!dst) {
 		return C_OOM;
 	}
@@ -56,8 +57,16 @@ int addop(uint8_t op, uint8_t ** dstp, size_t * lenp) {
 
 	dst[*lenp] = op;
 	++*lenp;
+	if (opnd) {
+		memcpy(&dst[*lenp], opnd, opndlen);
+		*lenp += opndlen;
+	}
 
 	return C_OK;
+}
+
+int addop(uint8_t op, uint8_t ** dstp, size_t * lenp) {
+	return addopwopnd(op, NULL, 0, dstp, lenp);
 }
 
 char *parsestr(char *tk, size_t len) {
@@ -169,12 +178,18 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 	SIMPLE_OP("pop", OP_POP);
 	SIMPLE_OP("swap", OP_SWAP);
 	SIMPLE_OP("dup", OP_DUP);
-	SIMPLE_OP("puts", OP_PUTS);
+
+#define CALLC_OP(k, f) if (strkeq(k, tk, len)) { \
+    callable *fp = &f; \
+    return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
+}
+
+	CALLC_OP("puts", builtin_puts);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->ndefs; i++) {
 		if (strkeq(cu->defs[i].name, tk, len)) {
-			int res = addop(OP_CALL, dstp, lenp);
+			int res = addop(OP_CALLI, dstp, lenp);
 			if (res) {
 				return res;
 			}
