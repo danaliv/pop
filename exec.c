@@ -6,17 +6,48 @@
 
 int runv(cunit * cu, uint8_t * body, size_t len) {
 	int res;
+	frame *f;
 
 	for (size_t i = 0; i < len; i++) {
 		switch (body[i]) {
 		case OP_NONE:
 			break;
+
+			// there's no good reason to implement the stack manipulation primitives this way rather
+			// than as CALLC ops, but the latter way seems somehow... distasteful?
 		case OP_POP:
 			if (!stack) {
 				return E_EMPTY;
 			}
 			pop();
 			break;
+		case OP_SWAP:
+			if (!stack && !stack->down) {
+				return E_TOOFEW;
+			}
+			f = stack;
+			stack = stack->down;
+			f->down = stack->down;
+			stack->down = f;
+			break;
+		case OP_DUP:
+			if (!stack) {
+				return E_EMPTY;
+			}
+			switch (stack->tp) {
+			case F_STR:
+				f = pushs(stack->s);
+				break;
+			case F_INT:
+				f = pushi(stack->i);
+				break;
+			}
+			if (!f) {
+				return E_OOM;
+			}
+			break;
+
+			// pushes, on the other hand, can't be done as function calls.
 		case OP_PUSHS:
 			if (i > len - 2) {
 				return E_NO_VAL;
@@ -28,6 +59,7 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 				i++;
 			}
 			break;
+
 		case OP_CALLI:
 			if (i > len - 2) {
 				return E_NO_VAL;
@@ -80,6 +112,9 @@ void prerror(int err) {
 		break;
 	case E_UNDEF:
 		fprintf(stderr, "Unknown word\n");
+		break;
+	case E_TOOFEW:
+		fprintf(stderr, "Not enough items on the stack\n");
 		break;
 	}
 }

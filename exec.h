@@ -19,7 +19,8 @@ enum {
 	E_EMPTY,
 	E_NO_VAL,
 	E_OOM,
-	E_UNDEF
+	E_UNDEF,
+	E_TOOFEW
 };
 
 typedef int callable(void);

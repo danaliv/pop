@@ -170,6 +170,7 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 }
 
 	CALLC_OP("puts", builtin_puts);
+	CALLC_OP("DEBUG_stack", builtin_DEBUG_stack);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->ndefs; i++) {

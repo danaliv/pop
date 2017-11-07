@@ -3,4 +3,6 @@
 
 int builtin_puts(void);
 
+int builtin_DEBUG_stack(void);
+
 #endif

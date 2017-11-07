@@ -12,7 +12,12 @@ frame *pushs(char *s) {
 	frame *f = malloc(sizeof(frame));
 	if (f) {
 		f->tp = F_STR;
-		f->s = s;
+		f->s = malloc(strlen(s) + 1);
+		if (!s) {
+			free(f);
+			return NULL;
+		}
+		strcpy(f->s, s);
 		f->down = stack;
 		stack = f;
 	}
@@ -39,6 +44,9 @@ void pop() {
 	if (stack) {
 		frame *f = stack;
 		stack = stack->down;
+		if (f->tp == F_STR) {
+			free(f->s);
+		}
 		free(f);
 	}
 }

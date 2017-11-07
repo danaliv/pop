@@ -9,7 +9,6 @@ typedef struct frame {
 	char *s;
 	int i;
 	struct frame *down;
-
 } frame;
 
 #ifndef __STACK_C__
