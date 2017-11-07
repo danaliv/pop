@@ -232,56 +232,56 @@ bool findquote(char **s, size_t * len) {
 	return false;
 }
 
-int compile(cunit **cup, char *s, size_t len) {
-    while (len) {
-    	skipspace(&s, &len);
-    	if (!len) {
-    		break;
-    	}
+int compile(cunit ** cup, char *s, size_t len) {
+	while (len) {
+		skipspace(&s, &len);
+		if (!len) {
+			break;
+		}
 
-    	char *tk = s;
-    	if (*s == '"') {
-    		if (!findquote(&s, &len)) {
-    		    return C_UNTERM_STR;
-    			break;
-    		}
-    		if (len && !isspace(*s)) {
-    		    return C_STR_SPACE;
-    			break;
-    		}
-    	}
-    	else {
-    		findspace(&s, &len);
-    	}
+		char *tk = s;
+		if (*s == '"') {
+			if (!findquote(&s, &len)) {
+				return C_UNTERM_STR;
+				break;
+			}
+			if (len && !isspace(*s)) {
+				return C_STR_SPACE;
+				break;
+			}
+		}
+		else {
+			findspace(&s, &len);
+		}
 
-    	int res = addtoken(cup, tk, s - tk);
-        if (res != C_OK) {
-            return res;
-        }
-    }
+		int res = addtoken(cup, tk, s - tk);
+		if (res != C_OK) {
+			return res;
+		}
+	}
 
-    return C_OK;
+	return C_OK;
 }
 
 void pcerror(int err) {
-    switch (err) {
+	switch (err) {
 	case C_IN_DEF:
-	    fprintf(stderr, "Can't use : inside a word definition\n");
-	    break;
+		fprintf(stderr, "Can't use : inside a word definition\n");
+		break;
 	case C_OOM:
-	    fprintf(stderr, "Out of memory\n");
-	    break;
+		fprintf(stderr, "Out of memory\n");
+		break;
 	case C_UNK:
-	    fprintf(stderr, "Unrecognized word\n");
-	    break;
+		fprintf(stderr, "Unrecognized word\n");
+		break;
 	case C_NOT_IN_DEF:
-	    fprintf(stderr, "Can't use ; outside a word definition\n");
-	    break;
+		fprintf(stderr, "Can't use ; outside a word definition\n");
+		break;
 	case C_UNTERM_STR:
-	    fprintf(stderr, "String has no end quote\n");
-	    break;
+		fprintf(stderr, "String has no end quote\n");
+		break;
 	case C_STR_SPACE:
-	    fprintf(stderr, "No space after string\n");
-	    break;
-    }
+		fprintf(stderr, "No space after string\n");
+		break;
+	}
 }

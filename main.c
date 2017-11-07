@@ -18,14 +18,14 @@ void usage() {
 }
 
 int rerrexit(int res) {
-    switch (res) {
-    case E_OOM:
-        return EX_OSERR;
-    case E_NO_VAL:
-        return EX_SOFTWARE;
-    default:
-        return EX_DATAERR;
-    }
+	switch (res) {
+	case E_OOM:
+		return EX_OSERR;
+	case E_NO_VAL:
+		return EX_SOFTWARE;
+	default:
+		return EX_DATAERR;
+	}
 }
 
 void printstack() {
@@ -65,7 +65,7 @@ void printstack() {
 int repl() {
 	cunit *cu = newcunit();
 	if (!cu) {
-	    perror(NULL);
+		perror(NULL);
 		return EX_OSERR;
 	}
 
@@ -89,41 +89,42 @@ int repl() {
 			return EX_IOERR;
 		}
 
-        int res = compile(&cu, line, len);
-        if (res == C_OK) {
-            if (!cu->indef) {
-                res = run(cu);
-                cu->mainlen = 0;
-                if (res != E_OK) {
-                    prerror(res);
-                    return rerrexit(res);
-                }
-            }
-        } else {
-            pcerror(res);
-            if (res == C_OOM) {
-                return EX_OSERR;
-            }
-        }
+		int res = compile(&cu, line, len);
+		if (res == C_OK) {
+			if (!cu->indef) {
+				res = run(cu);
+				cu->mainlen = 0;
+				if (res != E_OK) {
+					prerror(res);
+					return rerrexit(res);
+				}
+			}
+		}
+		else {
+			pcerror(res);
+			if (res == C_OOM) {
+				return EX_OSERR;
+			}
+		}
 	}
 
 	return EX_OK;
 }
 
 int evalfile(FILE * file) {
-    size_t lineno = 1;
+	size_t lineno = 1;
 
-    cunit *cu = newcunit();
+	cunit *cu = newcunit();
 	if (!cu) {
-	    perror(NULL);
+		perror(NULL);
 		return EX_OSERR;
 	}
 
-    while (1) {
-        char *line;
-        size_t len;
+	while (1) {
+		char *line;
+		size_t len;
 
-        line = fgetln(file, &len);
+		line = fgetln(file, &len);
 		if (!line && feof(file)) {
 			break;
 		}
@@ -134,24 +135,24 @@ int evalfile(FILE * file) {
 
 		int res = compile(&cu, line, len);
 		if (res != C_OK) {
-		    fprintf(stderr, "line %lu: ", lineno);
-		    pcerror(res);
-		    return EX_DATAERR;
+			fprintf(stderr, "line %lu: ", lineno);
+			pcerror(res);
+			return EX_DATAERR;
 		}
 
 		lineno++;
-    }
+	}
 
-    if (cu->indef) {
-        fprintf(stderr, "Word definition has no ;\n");
-        return EX_DATAERR;
-    }
+	if (cu->indef) {
+		fprintf(stderr, "Word definition has no ;\n");
+		return EX_DATAERR;
+	}
 
-    int res = run(cu);
-    if (res != E_OK) {
-        prerror(res);
-        return rerrexit(res);
-    }
+	int res = run(cu);
+	if (res != E_OK) {
+		prerror(res);
+		return rerrexit(res);
+	}
 
 	return EX_OK;
 }
@@ -159,28 +160,29 @@ int evalfile(FILE * file) {
 int evalstr(char *str) {
 	cunit *cu = newcunit();
 	if (!cu) {
-	    perror(NULL);
+		perror(NULL);
 		return EX_OSERR;
 	}
 
 	int res = compile(&cu, str, strlen(str));
 	if (res == C_OK) {
-	    if (cu->indef) {
-	        fprintf(stderr, "Word definition has no ;\n");
-	        return EX_DATAERR;
-	    }
-	    res = run(cu);
-	    if (res != E_OK) {
-	        prerror(res);
-	        return rerrexit(res);
-	    }
-	} else {
-	    pcerror(res);
-        if (res == C_OOM) {
-            return EX_OSERR;
-        }
-        return EX_DATAERR;
-    }
+		if (cu->indef) {
+			fprintf(stderr, "Word definition has no ;\n");
+			return EX_DATAERR;
+		}
+		res = run(cu);
+		if (res != E_OK) {
+			prerror(res);
+			return rerrexit(res);
+		}
+	}
+	else {
+		pcerror(res);
+		if (res == C_OOM) {
+			return EX_OSERR;
+		}
+		return EX_DATAERR;
+	}
 
 	return EX_OK;
 }

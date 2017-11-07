@@ -70,18 +70,18 @@ int run(cunit * cu) {
 }
 
 void prerror(int err) {
-    switch (err) {
+	switch (err) {
 	case E_EMPTY:
-	    fprintf(stderr, "Stack is empty\n");
-	    break;
+		fprintf(stderr, "Stack is empty\n");
+		break;
 	case E_NO_VAL:
-	    fprintf(stderr, "Malformed bytecode (internal error)\n");
-	    break;
+		fprintf(stderr, "Malformed bytecode (internal error)\n");
+		break;
 	case E_OOM:
-	    fprintf(stderr, "Out of memory\n");
-	    break;
+		fprintf(stderr, "Out of memory\n");
+		break;
 	case E_UNDEF:
-	    fprintf(stderr, "Unknown word\n");
-	    break;
-    }
+		fprintf(stderr, "Unknown word\n");
+		break;
+	}
 }
