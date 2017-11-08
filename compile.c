@@ -112,8 +112,7 @@ bool parseint(char *tk, size_t len, int *n) {
 	while (i < len) {
 		if (tk[i] >= '0' && tk[i] <= '9') {
 			*n += (tk[i] - '0') * place;
-		}
-		else {
+		} else {
 			return false;
 		}
 		i++;
@@ -168,15 +167,13 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 		cu->defs[cu->ndefs - 1].name[len] = 0;
 		return C_OK;
 	}
-
 	// is the instruction in main or a word?
 	uint8_t **dstp;
 	size_t *lenp;
 	if (cu->indef) {
 		dstp = &cu->defs[cu->ndefs - 1].body;
 		lenp = &cu->defs[cu->ndefs - 1].bodylen;
-	}
-	else {
+	} else {
 		dstp = &cu->main;
 		lenp = &cu->mainlen;
 	}
@@ -192,13 +189,11 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 		free(s);
 		return res;
 	}
-
 	// integer pushes
 	int n;
 	if (parseint(tk, len, &n)) {
 		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstp, lenp);
 	}
-
 	// simple builtins
 #define SIMPLE_OP(k, op) if (strkeq(k, tk, len)) return addop(op, dstp, lenp)
 
@@ -238,10 +233,22 @@ void skipspace(char **s, size_t * len) {
 		--*len;
 		++*s;
 	}
+
+	if (*len && **s == '(') {
+		while (*len && **s != ')') {
+			--*len;
+			++*s;
+		}
+		if (*len && **s == ')') {
+			--*len;
+			++*s;
+		}
+		skipspace(s, len);
+	}
 }
 
 void findspace(char **s, size_t * len) {
-	while (*len && !isspace(**s)) {
+	while (*len && !isspace(**s) && **s != '(') {
 		--*len;
 		++*s;
 	}
@@ -286,8 +293,7 @@ int compile(cunit ** cup, char *s, size_t len) {
 				return C_STR_SPACE;
 				break;
 			}
-		}
-		else {
+		} else {
 			findspace(&s, &len);
 		}
 

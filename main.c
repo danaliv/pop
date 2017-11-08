@@ -76,8 +76,7 @@ int repl() {
 		printstack();
 		if (cu->indef) {
 			printf(" :   ");
-		}
-		else {
+		} else {
 			printf(" > ");
 		}
 		line = fgetln(stdin, &len);
@@ -102,8 +101,7 @@ int repl() {
 					}
 				}
 			}
-		}
-		else {
+		} else {
 			pcerror(res);
 			cu->mainlen = 0;
 			if (res == C_OOM) {
@@ -179,8 +177,7 @@ int evalstr(char *str) {
 			prerror(res);
 			return rerrexit(res);
 		}
-	}
-	else {
+	} else {
 		pcerror(res);
 		if (res == C_OOM) {
 			return EX_OSERR;
@@ -199,7 +196,6 @@ int main(int argc, char *argv[]) {
 		}
 		return evalfile(stdin);
 	}
-
 	// file input
 	if (argc == 2) {
 		FILE *file = fopen(argv[1], "r");
@@ -209,7 +205,6 @@ int main(int argc, char *argv[]) {
 		}
 		return evalfile(file);
 	}
-
 	// one-liner with -e option
 	if (argc == 3 && strcmp("-e", argv[1]) == 0) {
 		return evalstr(argv[2]);

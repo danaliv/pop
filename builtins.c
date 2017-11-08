@@ -199,8 +199,7 @@ int builtin_DEBUG_stack(void) {
 		}
 		if (f->s) {
 			printf("    s = 0x%016lx \"%s\"\n", (uintptr_t) f->s, f->s);
-		}
-		else {
+		} else {
 			printf("    s = 0x0000000000000000\n");
 		}
 		printf("    i = %d\n", f->i);

@@ -11,5 +11,5 @@ clean:
 	rm -f pop *.o
 
 format:
-	gindent -i4 -ts4 -l100 -br -brs -brf -npcs -npsl *.h *.c
+	gindent -i4 -ts4 -l100 -br -ce -brs -brf -npcs -npsl *.h *.c
 	mv *~ .bak/
