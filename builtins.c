@@ -20,6 +20,85 @@ int builtin_puts(void) {
 	return E_OK;
 }
 
+int builtin_add(void) {
+    if (!stack || !stack->down) {
+        return E_TOOFEW;
+    }
+    if (stack->tp != F_INT || stack->down->tp != F_INT) {
+        return E_TYPE;
+    }
+
+    int a = stack->i;
+    int b = stack->down->i;
+    pop();
+    pop();
+    if (!pushi(a + b)) {
+        return E_OOM;
+    }
+
+    return E_OK;
+}
+
+int builtin_sub(void) {
+    if (!stack || !stack->down) {
+        return E_TOOFEW;
+    }
+    if (stack->tp != F_INT || stack->down->tp != F_INT) {
+        return E_TYPE;
+    }
+
+    int a = stack->i;
+    int b = stack->down->i;
+    pop();
+    pop();
+    if (!pushi(b - a)) {
+        return E_OOM;
+    }
+
+    return E_OK;
+}
+
+int builtin_mul(void) {
+    if (!stack || !stack->down) {
+        return E_TOOFEW;
+    }
+    if (stack->tp != F_INT || stack->down->tp != F_INT) {
+        return E_TYPE;
+    }
+
+    int a = stack->i;
+    int b = stack->down->i;
+    pop();
+    pop();
+    if (!pushi(a * b)) {
+        return E_OOM;
+    }
+
+    return E_OK;
+}
+
+int builtin_div(void) {
+    if (!stack || !stack->down) {
+        return E_TOOFEW;
+    }
+    if (stack->tp != F_INT || stack->down->tp != F_INT) {
+        return E_TYPE;
+    }
+    if (stack->i == 0) {
+        return E_DIV0;
+    }
+
+    int a = stack->i;
+    int b = stack->down->i;
+    pop();
+    pop();
+    if (!pushi(b / a)) {
+        return E_OOM;
+    }
+
+    return E_OK;
+}
+
 int builtin_DEBUG_stack(void) {
 	frame *f = stack;
 	while (f) {

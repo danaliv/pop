@@ -102,6 +102,7 @@ int repl() {
 		}
 		else {
 			pcerror(res);
+			cu->mainlen = 0;
 			if (res == C_OOM) {
 				return EX_OSERR;
 			}

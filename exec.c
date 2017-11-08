@@ -59,6 +59,15 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 				i++;
 			}
 			break;
+		case OP_PUSHI:
+		    if (i > len - (sizeof(int) + 1)) {
+		        return E_NO_VAL;
+		    }
+		    if (!pushi(*(int *) &body[i + 1])) {
+		        return E_OOM;
+		    }
+		    i += sizeof(int);
+		    break;
 
 		case OP_CALLI:
 			if (i > len - 2) {
@@ -116,5 +125,11 @@ void prerror(int err) {
 	case E_TOOFEW:
 		fprintf(stderr, "Not enough items on the stack\n");
 		break;
+	case E_TYPE:
+	    fprintf(stderr, "Wrong type(s) on stack\n");
+	    break;
+	case E_DIV0:
+	    fprintf(stderr, "Division by zero\n");
+	    break;
 	}
 }

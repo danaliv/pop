@@ -87,6 +87,42 @@ char *parsestr(char *tk, size_t len) {
 	return s;
 }
 
+bool parseint(char *tk, size_t len, int *n) {
+    // TODO: make this not dumb
+    size_t i = 0;
+    int sign = 1;
+    int place = 1;
+
+    switch (*tk) {
+    case '-':
+        sign = -1;
+    case '+':
+        if (len == 1) {
+            return false;
+        }
+        i++;
+        break;
+    }
+
+    for (size_t j = i + 1; j < len; j++) {
+        place *= 10;
+    }
+
+    *n = 0;
+    while (i < len) {
+        if (tk[i] >= '0' && tk[i] <= '9') {
+            *n += (tk[i] - '0') * place;
+        } else {
+            return false;
+        }
+        i++;
+        place /= 10;
+    }
+    *n *= sign;
+
+    return true;
+}
+
 int addtoken(cunit ** cup, char *tk, size_t len) {
 	cunit *cu = *cup;
 
@@ -156,6 +192,12 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 		return res;
 	}
 
+	// integer pushes
+	int n;
+	if (parseint(tk, len, &n)) {
+		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstp, lenp);
+	}
+
 	// simple builtins
 #define SIMPLE_OP(k, op) if (strkeq(k, tk, len)) return addop(op, dstp, lenp)
 
@@ -170,6 +212,10 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 }
 
 	CALLC_OP("puts", builtin_puts);
+	CALLC_OP("+", builtin_add);
+	CALLC_OP("-", builtin_sub);
+	CALLC_OP("*", builtin_mul);
+	CALLC_OP("/", builtin_div);
 	CALLC_OP("DEBUG_stack", builtin_DEBUG_stack);
 
 	// calls to user-defined words
