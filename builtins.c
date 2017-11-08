@@ -4,6 +4,92 @@
 #include "stack.h"
 #include "exec.h"
 
+int builtin_rot(void) {
+	if (!pushi(3)) {
+		return E_OOM;
+	}
+	return builtin_rotate();
+}
+
+int builtin_rotate(void) {
+	if (!stack) {
+		return E_EMPTY;
+	}
+	if (stack->tp != F_INT) {
+		return E_TYPE;
+	}
+	if (stack->i < 1) {
+		return E_RANGE;
+	}
+	if (stack->i == 1) {
+		pop();
+		return E_OK;
+	}
+
+	frame *f = stack;
+	for (int i = 1; i < stack->i; i++) {
+		f = f->down;
+		if (!f) {
+			return E_TOOFEW;
+		}
+	}
+	if (!f->down) {
+		return E_TOOFEW;
+	}
+
+	frame *f2 = f->down;
+	frame *f3 = f2->down;
+	pop();
+	f->down = f3;
+	f2->down = stack;
+	stack = f2;
+
+	return E_OK;
+}
+
+int builtin_over(void) {
+	if (!pushi(2)) {
+		return E_OOM;
+	}
+	return builtin_pick();
+	return E_OK;
+}
+
+int builtin_pick(void) {
+	if (!stack) {
+		return E_EMPTY;
+	}
+	if (stack->tp != F_INT) {
+		return E_TYPE;
+	}
+	if (stack->i < 1) {
+		return E_RANGE;
+	}
+
+	frame *f = stack;
+	for (int i = 0; i < stack->i; i++) {
+		f = f->down;
+		if (!f) {
+			return E_TOOFEW;
+		}
+	}
+	pop();
+
+	switch (f->tp) {
+	case F_STR:
+		f = pushs(f->s);
+		break;
+	case F_INT:
+		f = pushi(f->i);
+		break;
+	}
+	if (!f) {
+		return E_OOM;
+	}
+
+	return E_OK;
+}
+
 int builtin_puts(void) {
 	if (!stack) {
 		return E_EMPTY;
@@ -21,82 +107,82 @@ int builtin_puts(void) {
 }
 
 int builtin_add(void) {
-    if (!stack || !stack->down) {
-        return E_TOOFEW;
-    }
-    if (stack->tp != F_INT || stack->down->tp != F_INT) {
-        return E_TYPE;
-    }
+	if (!stack || !stack->down) {
+		return E_TOOFEW;
+	}
+	if (stack->tp != F_INT || stack->down->tp != F_INT) {
+		return E_TYPE;
+	}
 
-    int a = stack->i;
-    int b = stack->down->i;
-    pop();
-    pop();
-    if (!pushi(a + b)) {
-        return E_OOM;
-    }
+	int a = stack->i;
+	int b = stack->down->i;
+	pop();
+	pop();
+	if (!pushi(a + b)) {
+		return E_OOM;
+	}
 
-    return E_OK;
+	return E_OK;
 }
 
 int builtin_sub(void) {
-    if (!stack || !stack->down) {
-        return E_TOOFEW;
-    }
-    if (stack->tp != F_INT || stack->down->tp != F_INT) {
-        return E_TYPE;
-    }
+	if (!stack || !stack->down) {
+		return E_TOOFEW;
+	}
+	if (stack->tp != F_INT || stack->down->tp != F_INT) {
+		return E_TYPE;
+	}
 
-    int a = stack->i;
-    int b = stack->down->i;
-    pop();
-    pop();
-    if (!pushi(b - a)) {
-        return E_OOM;
-    }
+	int a = stack->i;
+	int b = stack->down->i;
+	pop();
+	pop();
+	if (!pushi(b - a)) {
+		return E_OOM;
+	}
 
-    return E_OK;
+	return E_OK;
 }
 
 int builtin_mul(void) {
-    if (!stack || !stack->down) {
-        return E_TOOFEW;
-    }
-    if (stack->tp != F_INT || stack->down->tp != F_INT) {
-        return E_TYPE;
-    }
+	if (!stack || !stack->down) {
+		return E_TOOFEW;
+	}
+	if (stack->tp != F_INT || stack->down->tp != F_INT) {
+		return E_TYPE;
+	}
 
-    int a = stack->i;
-    int b = stack->down->i;
-    pop();
-    pop();
-    if (!pushi(a * b)) {
-        return E_OOM;
-    }
+	int a = stack->i;
+	int b = stack->down->i;
+	pop();
+	pop();
+	if (!pushi(a * b)) {
+		return E_OOM;
+	}
 
-    return E_OK;
+	return E_OK;
 }
 
 int builtin_div(void) {
-    if (!stack || !stack->down) {
-        return E_TOOFEW;
-    }
-    if (stack->tp != F_INT || stack->down->tp != F_INT) {
-        return E_TYPE;
-    }
-    if (stack->i == 0) {
-        return E_DIV0;
-    }
+	if (!stack || !stack->down) {
+		return E_TOOFEW;
+	}
+	if (stack->tp != F_INT || stack->down->tp != F_INT) {
+		return E_TYPE;
+	}
+	if (stack->i == 0) {
+		return E_DIV0;
+	}
 
-    int a = stack->i;
-    int b = stack->down->i;
-    pop();
-    pop();
-    if (!pushi(b / a)) {
-        return E_OOM;
-    }
+	int a = stack->i;
+	int b = stack->down->i;
+	pop();
+	pop();
+	if (!pushi(b / a)) {
+		return E_OOM;
+	}
 
-    return E_OK;
+	return E_OK;
 }
 
 int builtin_DEBUG_stack(void) {
@@ -111,7 +197,12 @@ int builtin_DEBUG_stack(void) {
 			printf("    tp = F_INT\n");
 			break;
 		}
-		printf("    s = 0x%016lx \"%s\"\n", (uintptr_t) f->s, f->s);
+		if (f->s) {
+			printf("    s = 0x%016lx \"%s\"\n", (uintptr_t) f->s, f->s);
+		}
+		else {
+			printf("    s = 0x0000000000000000\n");
+		}
 		printf("    i = %d\n", f->i);
 		printf("    down = 0x%016lx\n", (uintptr_t) f->down);
 		printf("}\n");

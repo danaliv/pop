@@ -96,7 +96,10 @@ int repl() {
 				cu->mainlen = 0;
 				if (res != E_OK) {
 					prerror(res);
-					return rerrexit(res);
+					res = rerrexit(res);
+					if (res != EX_DATAERR) {
+						return res;
+					}
 				}
 			}
 		}

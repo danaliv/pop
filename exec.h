@@ -22,7 +22,8 @@ enum {
 	E_UNDEF,
 	E_TOOFEW,
 	E_TYPE,
-	E_DIV0
+	E_DIV0,
+	E_RANGE
 };
 
 typedef int callable(void);

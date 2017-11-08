@@ -1,7 +1,13 @@
 #ifndef __BUILTINS_H__
 #define __BUILTINS_H__
 
+int builtin_rot(void);
+int builtin_rotate(void);
+int builtin_over(void);
+int builtin_pick(void);
+
 int builtin_puts(void);
+
 int builtin_add(void);
 int builtin_sub(void);
 int builtin_mul(void);

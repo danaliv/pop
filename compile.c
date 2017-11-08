@@ -88,39 +88,40 @@ char *parsestr(char *tk, size_t len) {
 }
 
 bool parseint(char *tk, size_t len, int *n) {
-    // TODO: make this not dumb
-    size_t i = 0;
-    int sign = 1;
-    int place = 1;
+	// TODO: make this not dumb
+	size_t i = 0;
+	int sign = 1;
+	int place = 1;
 
-    switch (*tk) {
-    case '-':
-        sign = -1;
-    case '+':
-        if (len == 1) {
-            return false;
-        }
-        i++;
-        break;
-    }
+	switch (*tk) {
+	case '-':
+		sign = -1;
+	case '+':
+		if (len == 1) {
+			return false;
+		}
+		i++;
+		break;
+	}
 
-    for (size_t j = i + 1; j < len; j++) {
-        place *= 10;
-    }
+	for (size_t j = i + 1; j < len; j++) {
+		place *= 10;
+	}
 
-    *n = 0;
-    while (i < len) {
-        if (tk[i] >= '0' && tk[i] <= '9') {
-            *n += (tk[i] - '0') * place;
-        } else {
-            return false;
-        }
-        i++;
-        place /= 10;
-    }
-    *n *= sign;
+	*n = 0;
+	while (i < len) {
+		if (tk[i] >= '0' && tk[i] <= '9') {
+			*n += (tk[i] - '0') * place;
+		}
+		else {
+			return false;
+		}
+		i++;
+		place /= 10;
+	}
+	*n *= sign;
 
-    return true;
+	return true;
 }
 
 int addtoken(cunit ** cup, char *tk, size_t len) {
@@ -211,6 +212,10 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
     return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
 }
 
+	CALLC_OP("rot", builtin_rot);
+	CALLC_OP("rotate", builtin_rotate);
+	CALLC_OP("over", builtin_over);
+	CALLC_OP("pick", builtin_pick);
 	CALLC_OP("puts", builtin_puts);
 	CALLC_OP("+", builtin_add);
 	CALLC_OP("-", builtin_sub);

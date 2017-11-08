@@ -28,6 +28,7 @@ frame *pushi(int i) {
 	frame *f = malloc(sizeof(frame));
 	if (f) {
 		f->tp = F_INT;
+		f->s = NULL;
 		f->i = i;
 		f->down = stack;
 		stack = f;
