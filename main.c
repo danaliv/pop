@@ -134,6 +134,11 @@ int evalfile(FILE * file) {
 			perror(NULL);
 			return EX_IOERR;
 		}
+		// ignore hashbang
+		if (lineno == 1 && len > 1 && line[0] == '#' && line[1] == '!') {
+			lineno++;
+			continue;
+		}
 
 		int res = compile(&cu, line, len);
 		if (res != C_OK) {
