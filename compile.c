@@ -1,11 +1,11 @@
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "builtins.h"
 #include "compile.h"
 #include "exec.h"
-#include "builtins.h"
 
 cunit *newcunit() {
 	cunit *cu = malloc(sizeof(cunit));
@@ -22,7 +22,7 @@ cunit *newcunit() {
 	return cu;
 }
 
-void freecunit(cunit * cu) {
+void freecunit(cunit *cu) {
 	for (size_t i = 0; i < cu->ndefs; i++) {
 		free(cu->defs[i].body);
 	}
@@ -46,7 +46,7 @@ bool strkeq(const char *k, char *s, size_t slen) {
 	return true;
 }
 
-int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t ** dstp, size_t * lenp) {
+int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t **dstp, size_t *lenp) {
 	uint8_t *dst = *dstp;
 
 	dst = realloc(dst, *lenp + 1 + opndlen);
@@ -65,7 +65,7 @@ int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t ** dstp, size_t *
 	return C_OK;
 }
 
-int addop(uint8_t op, uint8_t ** dstp, size_t * lenp) {
+int addop(uint8_t op, uint8_t **dstp, size_t *lenp) {
 	return addopwopnd(op, NULL, 0, dstp, lenp);
 }
 
@@ -90,8 +90,8 @@ char *parsestr(char *tk, size_t len) {
 bool parseint(char *tk, size_t len, int *n) {
 	// TODO: make this not dumb
 	size_t i = 0;
-	int sign = 1;
-	int place = 1;
+	int    sign = 1;
+	int    place = 1;
 
 	switch (*tk) {
 	case '-':
@@ -123,7 +123,7 @@ bool parseint(char *tk, size_t len, int *n) {
 	return true;
 }
 
-int addtoken(cunit ** cup, char *tk, size_t len) {
+int addtoken(cunit **cup, char *tk, size_t len) {
 	cunit *cu = *cup;
 
 	// word definitions
@@ -167,9 +167,10 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 		cu->defs[cu->ndefs - 1].name[len] = 0;
 		return C_OK;
 	}
+
 	// is the instruction in main or a word?
 	uint8_t **dstp;
-	size_t *lenp;
+	size_t *  lenp;
 	if (cu->indef) {
 		dstp = &cu->defs[cu->ndefs - 1].body;
 		lenp = &cu->defs[cu->ndefs - 1].bodylen;
@@ -189,23 +190,29 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 		free(s);
 		return res;
 	}
+
 	// integer pushes
 	int n;
 	if (parseint(tk, len, &n)) {
 		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstp, lenp);
 	}
-	// simple builtins
-#define SIMPLE_OP(k, op) if (strkeq(k, tk, len)) return addop(op, dstp, lenp)
+
+		// simple builtins
+#define SIMPLE_OP(k, op) \
+	if (strkeq(k, tk, len)) { \
+		return addop(op, dstp, lenp); \
+	}
 
 	SIMPLE_OP("pop", OP_POP);
 	SIMPLE_OP("swap", OP_SWAP);
 	SIMPLE_OP("dup", OP_DUP);
 
 	// builtins implemented by C functions
-#define CALLC_OP(k, f) if (strkeq(k, tk, len)) { \
-    callable *fp = &f; \
-    return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
-}
+#define CALLC_OP(k, f) \
+	if (strkeq(k, tk, len)) { \
+		callable *fp = &f; \
+		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
+	}
 
 	CALLC_OP("rot", builtin_rot);
 	CALLC_OP("rotate", builtin_rotate);
@@ -228,7 +235,7 @@ int addtoken(cunit ** cup, char *tk, size_t len) {
 	return C_UNK;
 }
 
-void skipspace(char **s, size_t * len) {
+void skipspace(char **s, size_t *len) {
 	while (*len && isspace(**s)) {
 		--*len;
 		++*s;
@@ -247,14 +254,14 @@ void skipspace(char **s, size_t * len) {
 	}
 }
 
-void findspace(char **s, size_t * len) {
+void findspace(char **s, size_t *len) {
 	while (*len && !isspace(**s) && **s != '(') {
 		--*len;
 		++*s;
 	}
 }
 
-bool findquote(char **s, size_t * len) {
+bool findquote(char **s, size_t *len) {
 	--*len;
 	++*s;
 	while (*len) {
@@ -276,7 +283,7 @@ bool findquote(char **s, size_t * len) {
 	return false;
 }
 
-int compile(cunit ** cup, char *s, size_t len) {
+int compile(cunit **cup, char *s, size_t len) {
 	while (len) {
 		skipspace(&s, &len);
 		if (!len) {

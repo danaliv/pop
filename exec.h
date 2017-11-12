@@ -11,7 +11,7 @@ enum {
 	OP_PUSHS,
 	OP_PUSHI,
 	OP_CALLI,
-	OP_CALLC
+	OP_CALLC,
 };
 
 enum {
@@ -23,7 +23,7 @@ enum {
 	E_TOOFEW,
 	E_TYPE,
 	E_DIV0,
-	E_RANGE
+	E_RANGE,
 };
 
 typedef int callable(void);

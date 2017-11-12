@@ -1,8 +1,8 @@
 #include <stdio.h>
 
 #include "builtins.h"
-#include "stack.h"
 #include "exec.h"
+#include "stack.h"
 
 int builtin_rot(void) {
 	if (!pushi(3)) {

@@ -1,13 +1,13 @@
+#include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include <unistd.h>
 
-#include "stack.h"
 #include "compile.h"
 #include "exec.h"
+#include "stack.h"
 
 void usage() {
 	fprintf(stderr, "Usage:\n");
@@ -70,7 +70,7 @@ int repl() {
 	}
 
 	while (1) {
-		char *line;
+		char * line;
 		size_t len;
 
 		printstack();
@@ -113,7 +113,7 @@ int repl() {
 	return EX_OK;
 }
 
-int evalfile(FILE * file) {
+int evalfile(FILE *file) {
 	size_t lineno = 1;
 
 	cunit *cu = newcunit();
@@ -123,7 +123,7 @@ int evalfile(FILE * file) {
 	}
 
 	while (1) {
-		char *line;
+		char * line;
 		size_t len;
 
 		line = fgetln(file, &len);
@@ -134,6 +134,7 @@ int evalfile(FILE * file) {
 			perror(NULL);
 			return EX_IOERR;
 		}
+
 		// ignore hashbang
 		if (lineno == 1 && len > 1 && line[0] == '#' && line[1] == '!') {
 			lineno++;
@@ -201,6 +202,7 @@ int main(int argc, char *argv[]) {
 		}
 		return evalfile(stdin);
 	}
+
 	// file input
 	if (argc == 2) {
 		FILE *file = fopen(argv[1], "r");
@@ -210,6 +212,7 @@ int main(int argc, char *argv[]) {
 		}
 		return evalfile(file);
 	}
+
 	// one-liner with -e option
 	if (argc == 3 && strcmp("-e", argv[1]) == 0) {
 		return evalstr(argv[2]);

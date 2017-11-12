@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #define __STACK_C__
 #include "stack.h"
@@ -36,7 +36,7 @@ frame *pushi(int i) {
 	return f;
 }
 
-void pushf(frame * f) {
+void pushf(frame *f) {
 	f->down = stack;
 	stack = f;
 }

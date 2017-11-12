@@ -4,8 +4,8 @@
 #include "exec.h"
 #include "stack.h"
 
-int runv(cunit * cu, uint8_t * body, size_t len) {
-	int res;
+int runv(cunit *cu, uint8_t *body, size_t len) {
+	int    res;
 	frame *f;
 
 	for (size_t i = 0; i < len; i++) {
@@ -13,8 +13,9 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 		case OP_NONE:
 			break;
 
-			// there's no good reason to implement the stack manipulation primitives this way rather
-			// than as CALLC ops, but the latter way seems somehow... distasteful?
+			// there's no good reason to implement the stack manipulation primitives
+			// this way rather than as CALLC ops, but the latter way seems somehow...
+			// distasteful?
 		case OP_POP:
 			if (!stack) {
 				return E_EMPTY;
@@ -83,7 +84,7 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 				}
 			}
 			return E_UNDEF;
-		  callok:
+		callok:
 			while (body[i]) {
 				i++;
 			}
@@ -92,7 +93,7 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 			if (i > len - (sizeof(callable *) + 1)) {
 				return E_NO_VAL;
 			}
-			res = (*(callable **) (&body[i + 1])) ();
+			res = (*(callable **) (&body[i + 1]))();
 			if (res != E_OK) {
 				return res;
 			}
@@ -104,7 +105,7 @@ int runv(cunit * cu, uint8_t * body, size_t len) {
 	return E_OK;
 }
 
-int run(cunit * cu) {
+int run(cunit *cu) {
 	return runv(cu, cu->main, cu->mainlen);
 }
 

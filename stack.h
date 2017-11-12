@@ -4,10 +4,10 @@
 typedef struct frame {
 	enum {
 		F_STR,
-		F_INT
+		F_INT,
 	} tp;
-	char *s;
-	int i;
+	char *        s;
+	int           i;
 	struct frame *down;
 } frame;
 
@@ -17,7 +17,7 @@ extern frame *stack;
 
 frame *pushs(char *s);
 frame *pushi(int i);
-void pushf(frame * f);
-void pop();
+void   pushf(frame *f);
+void   pop();
 
 #endif
