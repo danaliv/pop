@@ -78,12 +78,18 @@ int repl() {
 		char * line;
 		size_t len;
 
-		printstack(cu);
-		if (cu->state == CS_DEF_NAME || cu->state == CS_DEF_BODY) {
-			printf(" :   ");
-		} else {
+		switch (cu->state) {
+		case CS_DEF_NAME:
+			printf("  : ");
+			break;
+		case CS_DEF_BODY:
+			printf("  : %s > ", cu->defs[cu->ndefs - 1].name);
+			break;
+		default:
+			printstack(cu);
 			printf(" > ");
 		}
+
 		line = fgetln(stdin, &len);
 		if (!line && feof(stdin)) {
 			break;
