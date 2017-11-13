@@ -6,6 +6,7 @@ int builtin_rotate(void);
 int builtin_over(void);
 int builtin_pick(void);
 
+int builtin_getenv(void);
 int builtin_puts(void);
 
 int builtin_add(void);

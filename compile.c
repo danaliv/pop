@@ -177,6 +177,7 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	CALLC_OP("rotate", builtin_rotate);
 	CALLC_OP("over", builtin_over);
 	CALLC_OP("pick", builtin_pick);
+	CALLC_OP("getenv", builtin_getenv);
 	CALLC_OP("puts", builtin_puts);
 	CALLC_OP(".", builtin_puts);
 	CALLC_OP("+", builtin_add);

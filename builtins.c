@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "builtins.h"
 #include "exec.h"
@@ -87,6 +88,23 @@ int builtin_pick(void) {
 		break;
 	}
 	if (!f) {
+		return E_OOM;
+	}
+
+	return E_OK;
+}
+
+int builtin_getenv(void) {
+	if (!stack) {
+		return E_EMPTY;
+	}
+	if (stack->tp != F_STR) {
+		return E_TYPE;
+	}
+
+	char *val = getenv(stack->s);
+	pop();
+	if (!pushs(val ? val : "")) {
 		return E_OOM;
 	}
 
