@@ -2,6 +2,7 @@
 #define __EXEC_H__
 
 #include "compile.h"
+#include "memory.h"
 #include "stack.h"
 
 enum {
@@ -30,13 +31,16 @@ enum {
 };
 
 typedef struct {
-	size_t  nvars;
-	frame **vars;
+	vecbk *varsv;
+	frame *vars;
 } exctx;
 
 typedef int callable(void);
 
-int run(cunit *, exctx **);
+exctx *newexctx();
+void   freeexctx(exctx *);
+
+int run(cunit *, exctx *);
 
 void prerror(int);
 

@@ -64,13 +64,8 @@ void printstack(cunit *cu) {
 }
 
 int repl() {
-	exctx *ctx;
-
 	cunit *cu = newcunit();
-	if (!cu) {
-		perror(NULL);
-		return EX_OSERR;
-	}
+	exctx *ctx = newexctx();
 
 	while (1) {
 		char * line;
@@ -81,7 +76,7 @@ int repl() {
 			printf("  : ");
 			break;
 		case CS_DEF_BODY:
-			printf("  : %s > ", cu->defs[cu->ndefs - 1].name);
+			printf("  : %s > ", cu->defs[cu->defsv->len - 1].name);
 			break;
 		default:
 			printstack(cu);
@@ -97,11 +92,11 @@ int repl() {
 			return EX_IOERR;
 		}
 
-		int res = compile(&cu, line, len);
+		int res = compile(cu, line, len);
 		if (res == C_OK) {
 			if (cu->state == CS_MAIN) {
-				res = run(cu, &ctx);
-				cu->mainlen = 0;
+				res = run(cu, ctx);
+				cu->mainv->len = 0;
 				if (res != E_OK) {
 					prerror(res);
 					res = rerrexit(res);
@@ -112,7 +107,7 @@ int repl() {
 			}
 		} else {
 			pcerror(res);
-			cu->mainlen = 0;
+			cu->mainv->len = 0;
 		}
 	}
 
@@ -120,13 +115,8 @@ int repl() {
 }
 
 int evalfile(FILE *file) {
-	size_t lineno = 1;
-
 	cunit *cu = newcunit();
-	if (!cu) {
-		perror(NULL);
-		return EX_OSERR;
-	}
+	size_t lineno = 1;
 
 	while (1) {
 		char * line;
@@ -147,7 +137,7 @@ int evalfile(FILE *file) {
 			continue;
 		}
 
-		int res = compile(&cu, line, len);
+		int res = compile(cu, line, len);
 		if (res != C_OK) {
 			fprintf(stderr, "line %lu: ", lineno);
 			pcerror(res);
@@ -173,12 +163,8 @@ int evalfile(FILE *file) {
 
 int evalstr(char *str) {
 	cunit *cu = newcunit();
-	if (!cu) {
-		perror(NULL);
-		return EX_OSERR;
-	}
 
-	int res = compile(&cu, str, strlen(str));
+	int res = compile(cu, str, strlen(str));
 	if (res == C_OK) {
 		if (cu->state != CS_MAIN) {
 			fprintf(stderr, "Program ends abruptly\n");

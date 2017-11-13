@@ -6,11 +6,28 @@
 #include "memory.h"
 #include "stack.h"
 
-int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
-	int    res;
-	frame *f;
+exctx *newexctx() {
+	exctx *ctx = xmalloc(sizeof(exctx));
+	ctx->varsv = newvec(4, sizeof(frame), (void **) &ctx->vars);
+	return ctx;
+}
 
-	for (size_t i = 0; i < len; i++) {
+void freeexctx(exctx *ctx) {
+	for (size_t i = 0; i < ctx->varsv->len; i++) {
+		if (ctx->vars[i].tp == F_STR) {
+			free(ctx->vars[i].s);
+		}
+	}
+	vfree(ctx->varsv);
+	free(ctx);
+}
+
+int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
+	int      res;
+	frame *  f;
+	uint8_t *body = *bodyv->itemsp;
+
+	for (size_t i = 0; i < bodyv->len; i++) {
 		switch (body[i]) {
 		case OP_NONE:
 			break;
@@ -52,7 +69,7 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 
 			// pushes, on the other hand, can't be done as function calls.
 		case OP_PUSHS:
-			if (i > len - 2) {
+			if (i > bodyv->len - 2) {
 				return E_NO_VAL;
 			}
 			pushs((char *) &body[i + 1]);
@@ -61,14 +78,14 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			}
 			break;
 		case OP_PUSHI:
-			if (i > len - (sizeof(int) + 1)) {
+			if (i > bodyv->len - (sizeof(int) + 1)) {
 				return E_NO_VAL;
 			}
 			pushi(*(int *) &body[i + 1]);
 			i += sizeof(int);
 			break;
 		case OP_PUSHREF:
-			if (i > len - (sizeof(size_t) + 1)) {
+			if (i > bodyv->len - (sizeof(size_t) + 1)) {
 				return E_NO_VAL;
 			}
 			pushref(*(size_t *) &body[i + 1]);
@@ -76,12 +93,12 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			break;
 
 		case OP_CALLI:
-			if (i > len - 2) {
+			if (i > bodyv->len - 2) {
 				return E_NO_VAL;
 			}
-			for (size_t j = 0; j < cu->ndefs; j++) {
+			for (size_t j = 0; j < cu->defsv->len; j++) {
 				if (strcmp(cu->defs[j].name, (const char *) &body[i + 1]) == 0) {
-					int res = runv(cu, cu->defs[j].body, cu->defs[j].bodylen, ctx);
+					int res = runv(cu, cu->defs[j].bodyv, ctx);
 					if (res) {
 						return res;
 					}
@@ -95,7 +112,7 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			}
 			break;
 		case OP_CALLC:
-			if (i > len - (sizeof(callable *) + 1)) {
+			if (i > bodyv->len - (sizeof(callable *) + 1)) {
 				return E_NO_VAL;
 			}
 			res = (*(callable **) (&body[i + 1]))();
@@ -113,12 +130,16 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 				return E_TYPE;
 			}
 
-			if (ctx->vars[stack->ref]) {
-				freeframe(ctx->vars[stack->ref]);
-				ctx->vars[stack->ref] = NULL;
+			if (ctx->vars[stack->ref].tp == F_STR) {
+				free(ctx->vars[stack->ref].s);
 			}
 
-			ctx->vars[stack->ref] = copyframe(stack->down);
+			ctx->vars[stack->ref] = *stack->down;
+			if (stack->down->tp == F_STR) {
+				ctx->vars[stack->ref].s = xmalloc(strlen(stack->down->s) + 1);
+				strcpy(ctx->vars[stack->ref].s, stack->down->s);
+			}
+
 			pop();
 			pop();
 			break;
@@ -130,15 +151,10 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 				return E_TYPE;
 			}
 
-			if (ctx->vars[stack->ref]) {
-				f = copyframe(ctx->vars[stack->ref]);
-				pop();
-				f->down = stack;
-				stack = f;
-			} else {
-				pop();
-				pushi(0);
-			}
+			f = copyframe(&ctx->vars[stack->ref]);
+			pop();
+			f->down = stack;
+			stack = f;
 			break;
 		}
 	}
@@ -146,34 +162,23 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 	return E_OK;
 }
 
-int run(cunit *cu, exctx **ctxp) {
-	// if caller passed NULL for context pointer, use a local context
-	exctx *ctx1 = NULL;
-	if (!ctxp) {
-		ctxp = &ctx1;
-	}
-
-	exctx *ctx = *ctxp;
-
-	// allocate context if necessary
+int run(cunit *cu, exctx *ctx) {
 	if (!ctx) {
-		*ctxp = ctx = xmalloc(sizeof(exctx));
-
-		ctx->nvars = cu->nvars ? cu->nvars : 4;
-		ctx->vars = xcalloc(ctx->nvars, sizeof(frame *));
+		ctx = newexctx();
 	}
 
 	// grow context's variable array if necessary
-	if (ctx->nvars < cu->nvars) {
-		xrealloc((void **) &ctx->vars, sizeof(frame *) * cu->nvars);
-		for (size_t i = ctx->nvars; i < cu->nvars; i++) {
-			ctx->vars[i] = NULL;
+	if (ctx->varsv->len < cu->varsv->len) {
+		size_t oldlen = ctx->varsv->len;
+		vaddn(ctx->varsv, cu->varsv->len - ctx->varsv->len);
+		for (size_t i = oldlen; i < ctx->varsv->len; i++) {
+			ctx->vars[i].tp = F_INT;
+			ctx->vars[i].i = 0;
 		}
-		ctx->nvars = cu->nvars;
 	}
 
-	// execute program
-	return runv(cu, cu->main, cu->mainlen, ctx);
+	// run main
+	return runv(cu, cu->mainv, ctx);
 }
 
 void prerror(int err) {

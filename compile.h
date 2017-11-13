@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "memory.h"
+
 typedef struct {
 	enum {
 		CS_MAIN,
@@ -12,17 +14,20 @@ typedef struct {
 		CS_DEF_BODY,
 		CS_VAR_NAME,
 	} state;
-	bool     incomment;
-	size_t   mainlen;
+	bool incomment;
+
+	vecbk *  mainv;
 	uint8_t *main;
-	size_t   nvars;
-	char **  vars;
-	size_t   ndefs;
+
+	vecbk *varsv;
+	char **vars;
+
+	vecbk *defsv;
 	struct cunitdef {
 		char *   name;
-		size_t   bodylen;
+		vecbk *  bodyv;
 		uint8_t *body;
-	} defs[];
+	} * defs;
 } cunit;
 
 enum {
@@ -37,8 +42,7 @@ enum {
 cunit *newcunit();
 void   freecunit(cunit *);
 
-int addtoken(cunit **, char *tk, size_t len);
-int compile(cunit **, char *s, size_t len);
+int compile(cunit *, char *s, size_t len);
 
 void pcerror(int);
 

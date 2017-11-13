@@ -12,22 +12,25 @@ cunit *newcunit() {
 	cunit *cu = xmalloc(sizeof(cunit));
 	cu->state = CS_MAIN;
 	cu->incomment = false;
-	cu->mainlen = 0;
-	cu->main = xcalloc(1, 128);
-	cu->nvars = 0;
-	cu->vars = xcalloc(4, sizeof(char *));
-	cu->ndefs = 0;
+	cu->mainv = newvec(128, sizeof(uint8_t), (void **) &cu->main);
+	cu->varsv = newvec(4, sizeof(char *), (void **) &cu->vars);
+	cu->defsv = newvec(4, sizeof(struct cunitdef), (void **) &cu->defs);
 	return cu;
 }
 
 void freecunit(cunit *cu) {
-	free(cu->main);
-	for (size_t i = 0; i < cu->ndefs; i++) {
-		free(cu->defs[i].body);
-	}
-	for (size_t i = 0; i < cu->nvars; i++) {
+	size_t i;
+
+	for (i = 0; i < cu->varsv->len; i++) {
 		free(cu->vars[i]);
 	}
+	vfree(cu->varsv);
+
+	for (i = 0; i < cu->defsv->len; i++) {
+		vfree(cu->defs[i].bodyv);
+	}
+	vfree(cu->defsv);
+
 	free(cu);
 }
 
@@ -47,22 +50,23 @@ bool strkeq(const char *k, char *s, size_t slen) {
 	return true;
 }
 
-int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t **dstp, size_t *lenp) {
-	xrealloc((void **) dstp, *lenp + 1 + opndlen);
-	uint8_t *dst = *dstp;
+int addopwopnd(uint8_t op, void *opnd, size_t opndlen, vecbk *dstv) {
+	uint8_t *dst = *dstv->itemsp;
 
-	dst[*lenp] = op;
-	++*lenp;
-	if (opnd) {
-		memcpy(&dst[*lenp], opnd, opndlen);
-		*lenp += opndlen;
-	}
+	vaddn(dstv, 1 + opndlen);
+	dst[dstv->len - (1 + opndlen)] = op;
+	memcpy(dst + dstv->len - opndlen, opnd, opndlen);
 
 	return C_OK;
 }
 
-int addop(uint8_t op, uint8_t **dstp, size_t *lenp) {
-	return addopwopnd(op, NULL, 0, dstp, lenp);
+int addop(uint8_t op, vecbk *dstv) {
+	uint8_t *dst = *dstv->itemsp;
+
+	vadd(dstv);
+	dst[dstv->len - 1] = op;
+
+	return C_OK;
 }
 
 char *parsestr(char *tk, size_t len) {
@@ -121,13 +125,11 @@ bool parseint(char *tk, size_t len, int *n) {
 	return true;
 }
 
-int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
-	cunit *cu = *cup;
-
+int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	// string pushes
 	if (*tk == '"') {
 		char *s = parsestr(tk, len);
-		int   res = addopwopnd(OP_PUSHS, s, strlen(s) + 1, dstp, lenp);
+		int   res = addopwopnd(OP_PUSHS, s, strlen(s) + 1, dstv);
 		free(s);
 		return res;
 	}
@@ -135,13 +137,13 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	// integer pushes
 	int n;
 	if (parseint(tk, len, &n)) {
-		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstp, lenp);
+		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstv);
 	}
 
 		// simple builtins
 #define SIMPLE_OP(k, op) \
 	if (strkeq(k, tk, len)) { \
-		return addop(op, dstp, lenp); \
+		return addop(op, dstv); \
 	}
 
 	SIMPLE_OP("pop", OP_POP);
@@ -154,7 +156,7 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 #define CALLC_OP(k, f) \
 	if (strkeq(k, tk, len)) { \
 		callable *fp = &f; \
-		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstp, lenp); \
+		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstv); \
 	}
 
 	CALLC_OP("rot", builtin_rot);
@@ -173,33 +175,31 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	CALLC_OP("DEBUG_puts_all", builtin_DEBUG_puts_all);
 
 	// calls to user-defined words
-	for (size_t i = 0; i < cu->ndefs; i++) {
-		if (strkeq(cu->defs[i].name, tk, len)) {
-			return addopwopnd(OP_CALLI, cu->defs[i].name, strlen(cu->defs[i].name) + 1, dstp, lenp);
+	for (size_t i = 0; i < cu->defsv->len; i++) {
+		char *name = cu->defs[i].name;
+		if (strkeq(name, tk, len)) {
+			return addopwopnd(OP_CALLI, name, strlen(name) + 1, dstv);
 		}
 	}
 
 	// variable reference pushes
-	for (size_t i = 0; i < cu->nvars; i++) {
+	for (size_t i = 0; i < cu->varsv->len; i++) {
 		if (strkeq(cu->vars[i], tk, len)) {
-			return addopwopnd(OP_PUSHREF, &i, sizeof(i), dstp, lenp);
+			return addopwopnd(OP_PUSHREF, &i, sizeof(i), dstv);
 		}
 	}
 
 	return C_UNK;
 }
 
-int addtoken_MAIN(cunit **cup, char *tk, size_t len) {
-	cunit *cu = *cup;
-
+int addtoken_MAIN(cunit *cu, char *tk, size_t len) {
 	if (strkeq(":", tk, len)) {
-		cu = xrealloc((void **) cup, sizeof(cunit) + sizeof(struct cunitdef) * (cu->ndefs + 1));
+		vadd(cu->defsv);
+		size_t i = cu->defsv->len - 1;
+		cu->defs[i].name = NULL;
+		cu->defs[i].bodyv = newvec(128, sizeof(uint8_t), (void **) &cu->defs[i].body);
 
-		cu->defs[cu->ndefs].name = NULL;
-		cu->defs[cu->ndefs].bodylen = 0;
-		cu->defs[cu->ndefs].body = xcalloc(1, 128);
 		cu->state = CS_DEF_NAME;
-		cu->ndefs++;
 		return C_OK;
 	}
 
@@ -212,25 +212,23 @@ int addtoken_MAIN(cunit **cup, char *tk, size_t len) {
 		return C_OK;
 	}
 
-	return addinstr(cup, tk, len, &cu->main, &cu->mainlen);
+	return addinstr(cu, tk, len, cu->mainv);
 }
 
-int addtoken_DEF_NAME(cunit **cup, char *tk, size_t len) {
-	cunit *cu = *cup;
-
+int addtoken_DEF_NAME(cunit *cu, char *tk, size_t len) {
 	// TODO: verify name legality
-	cu->defs[cu->ndefs - 1].name = xmalloc(len + 1);
-	memcpy(cu->defs[cu->ndefs - 1].name, tk, len);
-	cu->defs[cu->ndefs - 1].name[len] = 0;
+
+	char *name = xmalloc(len + 1);
+	memcpy(name, tk, len);
+	name[len] = 0;
+
+	cu->defs[cu->defsv->len - 1].name = name;
 
 	cu->state = CS_DEF_BODY;
-
 	return C_OK;
 }
 
-int addtoken_DEF_BODY(cunit **cup, char *tk, size_t len) {
-	cunit *cu = *cup;
-
+int addtoken_DEF_BODY(cunit *cu, char *tk, size_t len) {
 	if (strkeq(":", tk, len)) {
 		return C_IN_DEF;
 	}
@@ -240,37 +238,33 @@ int addtoken_DEF_BODY(cunit **cup, char *tk, size_t len) {
 		return C_OK;
 	}
 
-	return addinstr(cup, tk, len, &cu->defs[cu->ndefs - 1].body, &cu->defs[cu->ndefs - 1].bodylen);
+	return addinstr(cu, tk, len, cu->defs[cu->defsv->len - 1].bodyv);
 }
 
-int addtoken_VAR_NAME(cunit **cup, char *tk, size_t len) {
-	cunit *cu = *cup;
-
+int addtoken_VAR_NAME(cunit *cu, char *tk, size_t len) {
 	// TODO: verify name legality
-	xrealloc((void **) &cu->vars, sizeof(char **) * (cu->nvars + 1));
 
-	char *var = xmalloc(len + 1);
-	memcpy(var, tk, len);
-	var[len] = 0;
+	char *name = xmalloc(len + 1);
+	memcpy(name, tk, len);
+	name[len] = 0;
 
-	cu->vars[cu->nvars] = var;
-	cu->nvars++;
+	vadd(cu->varsv);
+	cu->vars[cu->varsv->len - 1] = name;
 
 	cu->state = CS_MAIN;
-
 	return C_OK;
 }
 
-int addtoken(cunit **cup, char *tk, size_t len) {
-	switch ((*cup)->state) {
+int addtoken(cunit *cu, char *tk, size_t len) {
+	switch (cu->state) {
 	case CS_MAIN:
-		return addtoken_MAIN(cup, tk, len);
+		return addtoken_MAIN(cu, tk, len);
 	case CS_DEF_NAME:
-		return addtoken_DEF_NAME(cup, tk, len);
+		return addtoken_DEF_NAME(cu, tk, len);
 	case CS_DEF_BODY:
-		return addtoken_DEF_BODY(cup, tk, len);
+		return addtoken_DEF_BODY(cu, tk, len);
 	case CS_VAR_NAME:
-		return addtoken_VAR_NAME(cup, tk, len);
+		return addtoken_VAR_NAME(cu, tk, len);
 	}
 }
 
@@ -324,9 +318,9 @@ bool findquote(char **s, size_t *len) {
 	return false;
 }
 
-int compile(cunit **cup, char *s, size_t len) {
+int compile(cunit *cu, char *s, size_t len) {
 	while (len) {
-		skipspace(&s, &len, &(*cup)->incomment);
+		skipspace(&s, &len, &cu->incomment);
 		if (!len) {
 			break;
 		}
@@ -345,7 +339,7 @@ int compile(cunit **cup, char *s, size_t len) {
 			findspace(&s, &len);
 		}
 
-		int res = addtoken(cup, tk, s - tk);
+		int res = addtoken(cu, tk, s - tk);
 		if (res != C_OK) {
 			return res;
 		}
