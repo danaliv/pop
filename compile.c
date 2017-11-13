@@ -90,6 +90,10 @@ char *parsestr(char *tk, size_t len) {
 			}
 			if (tk[ti] == '\\') {
 				ti++;
+				if (ti < len && tk[ti] == 'n') {
+				    s[si] = '\n';
+				    continue;
+				}
 			}
 			s[si] = tk[ti];
 		}
