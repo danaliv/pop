@@ -12,6 +12,7 @@ typedef struct {
 		CS_DEF_BODY,
 		CS_VAR_NAME,
 	} state;
+	bool     incomment;
 	size_t   mainlen;
 	uint8_t *main;
 	size_t   nvars;

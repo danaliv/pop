@@ -11,6 +11,7 @@ cunit *newcunit() {
 	cunit *cu = malloc(sizeof(cunit));
 	if (cu) {
 		cu->state = CS_MAIN;
+		cu->incomment = false;
 		cu->mainlen = 0;
 		cu->main = calloc(1, 128);
 		if (!cu->main) {
@@ -307,13 +308,14 @@ int addtoken(cunit **cup, char *tk, size_t len) {
 	}
 }
 
-void skipspace(char **s, size_t *len) {
+void skipspace(char **s, size_t *len, bool *incomment) {
 	while (*len && isspace(**s)) {
 		--*len;
 		++*s;
 	}
 
-	if (*len && **s == '(') {
+	if (*len && (**s == '(' || *incomment)) {
+		*incomment = true;
 		while (*len && **s != ')') {
 			--*len;
 			++*s;
@@ -321,8 +323,9 @@ void skipspace(char **s, size_t *len) {
 		if (*len && **s == ')') {
 			--*len;
 			++*s;
+			*incomment = false;
 		}
-		skipspace(s, len);
+		skipspace(s, len, incomment);
 	}
 }
 
@@ -357,7 +360,7 @@ bool findquote(char **s, size_t *len) {
 
 int compile(cunit **cup, char *s, size_t len) {
 	while (len) {
-		skipspace(&s, &len);
+		skipspace(&s, &len, &(*cup)->incomment);
 		if (!len) {
 			break;
 		}

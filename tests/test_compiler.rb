@@ -31,4 +31,9 @@ class TestCompiler < Test
     def test_unknown_word
         assert_error "blorp", "line 1: Unrecognized word\n"
     end
+
+    def test_comment
+        assert_output "1 2 ( this is a comment ) 3 4", "4\n3\n2\n1\n"
+        assert_output "1 2 ( this is\na comment ) 3 4", "4\n3\n2\n1\n"
+    end
 end
