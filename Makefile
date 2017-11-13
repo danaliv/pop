@@ -1,4 +1,5 @@
-CFLAGS=-g -Wall -Wextra -Wpedantic
+CFLAGS = -g -Wall -Wextra -Wpedantic
+CLANG_FORMAT ?= clang-format
 
 .PHONY: clean format
 
@@ -8,7 +9,14 @@ pop: $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o pop $(objs)
 
 clean:
-	rm -f pop *.o
+	rm -f pop *.o *.d
 
 format:
 	$(CLANG_FORMAT) -i *.c *.h
+
+deps := $(objs:.o=.d)
+
+%.d: %.c
+	$(CC) $(CFLAGS) -MM -MF $@ $<
+
+-include $(deps)
