@@ -2,6 +2,7 @@
 #define __EXEC_H__
 
 #include "compile.h"
+#include "stack.h"
 
 enum {
 	OP_NONE = 0,
@@ -10,8 +11,11 @@ enum {
 	OP_DUP,
 	OP_PUSHS,
 	OP_PUSHI,
+	OP_PUSHREF,
 	OP_CALLI,
 	OP_CALLC,
+	OP_STORE,
+	OP_FETCH,
 };
 
 enum {
@@ -26,9 +30,14 @@ enum {
 	E_RANGE,
 };
 
+typedef struct {
+	size_t  nvars;
+	frame **vars;
+} exctx;
+
 typedef int callable(void);
 
-int run(cunit *);
+int run(cunit *, exctx **);
 
 void prerror(int);
 

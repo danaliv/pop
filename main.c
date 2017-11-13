@@ -53,6 +53,9 @@ void printstack() {
 			case F_INT:
 				printf("%d", f[i]->i);
 				break;
+			case F_REF:
+				printf("VAR#%lu", f[i]->ref);
+				break;
 			}
 		}
 	}
@@ -63,6 +66,8 @@ void printstack() {
 }
 
 int repl() {
+	exctx *ctx;
+
 	cunit *cu = newcunit();
 	if (!cu) {
 		perror(NULL);
@@ -74,7 +79,7 @@ int repl() {
 		size_t len;
 
 		printstack();
-		if (cu->indef) {
+		if (cu->state == CS_DEF_NAME || cu->state == CS_DEF_BODY) {
 			printf(" :   ");
 		} else {
 			printf(" > ");
@@ -90,8 +95,8 @@ int repl() {
 
 		int res = compile(&cu, line, len);
 		if (res == C_OK) {
-			if (!cu->indef) {
-				res = run(cu);
+			if (cu->state == CS_MAIN) {
+				res = run(cu, &ctx);
 				cu->mainlen = 0;
 				if (res != E_OK) {
 					prerror(res);
@@ -151,12 +156,12 @@ int evalfile(FILE *file) {
 		lineno++;
 	}
 
-	if (cu->indef) {
-		fprintf(stderr, "Word definition has no ;\n");
+	if (cu->state != CS_MAIN) {
+		fprintf(stderr, "Program ends abruptly\n");
 		return EX_DATAERR;
 	}
 
-	int res = run(cu);
+	int res = run(cu, NULL);
 	if (res != E_OK) {
 		prerror(res);
 		return rerrexit(res);
@@ -174,11 +179,11 @@ int evalstr(char *str) {
 
 	int res = compile(&cu, str, strlen(str));
 	if (res == C_OK) {
-		if (cu->indef) {
-			fprintf(stderr, "Word definition has no ;\n");
+		if (cu->state != CS_MAIN) {
+			fprintf(stderr, "Program ends abruptly\n");
 			return EX_DATAERR;
 		}
-		res = run(cu);
+		res = run(cu, NULL);
 		if (res != E_OK) {
 			prerror(res);
 			return rerrexit(res);

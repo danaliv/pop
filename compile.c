@@ -10,10 +10,17 @@
 cunit *newcunit() {
 	cunit *cu = malloc(sizeof(cunit));
 	if (cu) {
-		cu->indef = false;
+		cu->state = CS_MAIN;
 		cu->mainlen = 0;
 		cu->main = calloc(1, 128);
 		if (!cu->main) {
+			free(cu);
+			return NULL;
+		}
+		cu->nvars = 0;
+		cu->vars = calloc(4, sizeof(char *));
+		if (!cu->vars) {
+			free(cu->main);
 			free(cu);
 			return NULL;
 		}
@@ -23,10 +30,13 @@ cunit *newcunit() {
 }
 
 void freecunit(cunit *cu) {
+	free(cu->main);
 	for (size_t i = 0; i < cu->ndefs; i++) {
 		free(cu->defs[i].body);
 	}
-	free(cu->main);
+	for (size_t i = 0; i < cu->nvars; i++) {
+		free(cu->vars[i]);
+	}
 	free(cu);
 }
 
@@ -123,61 +133,8 @@ bool parseint(char *tk, size_t len, int *n) {
 	return true;
 }
 
-int addtoken(cunit **cup, char *tk, size_t len) {
+int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	cunit *cu = *cup;
-
-	// word definitions
-	if (strkeq(":", tk, len)) {
-		if (cu->indef) {
-			return C_IN_DEF;
-		}
-
-		cu = realloc(cu, sizeof(cunit) + sizeof(struct cunitdef) * (cu->ndefs + 1));
-		if (!cu) {
-			return C_OOM;
-		}
-		*cup = cu;
-
-		cu->defs[cu->ndefs].name = NULL;
-		cu->defs[cu->ndefs].bodylen = 0;
-		cu->defs[cu->ndefs].body = calloc(1, 128);
-		if (!cu->defs[cu->ndefs].body) {
-			return C_OOM;
-		}
-		cu->indef = true;
-		cu->ndefs++;
-		return C_OK;
-	}
-
-	if (strkeq(";", tk, len)) {
-		if (!cu->indef) {
-			return C_NOT_IN_DEF;
-		}
-		cu->indef = false;
-		return C_OK;
-	}
-
-	if (cu->indef && !cu->defs[cu->ndefs - 1].name) {
-		// TODO: verify name legality
-		cu->defs[cu->ndefs - 1].name = malloc(len + 1);
-		if (!cu->defs[cu->ndefs - 1].name) {
-			return C_OOM;
-		}
-		memcpy(cu->defs[cu->ndefs - 1].name, tk, len);
-		cu->defs[cu->ndefs - 1].name[len] = 0;
-		return C_OK;
-	}
-
-	// is the instruction in main or a word?
-	uint8_t **dstp;
-	size_t *  lenp;
-	if (cu->indef) {
-		dstp = &cu->defs[cu->ndefs - 1].body;
-		lenp = &cu->defs[cu->ndefs - 1].bodylen;
-	} else {
-		dstp = &cu->main;
-		lenp = &cu->mainlen;
-	}
 
 	// string pushes
 	if (*tk == '"') {
@@ -206,6 +163,8 @@ int addtoken(cunit **cup, char *tk, size_t len) {
 	SIMPLE_OP("pop", OP_POP);
 	SIMPLE_OP("swap", OP_SWAP);
 	SIMPLE_OP("dup", OP_DUP);
+	SIMPLE_OP("!", OP_STORE);
+	SIMPLE_OP("@", OP_FETCH);
 
 	// builtins implemented by C functions
 #define CALLC_OP(k, f) \
@@ -232,7 +191,116 @@ int addtoken(cunit **cup, char *tk, size_t len) {
 		}
 	}
 
+	// variable reference pushes
+	for (size_t i = 0; i < cu->nvars; i++) {
+		if (strkeq(cu->vars[i], tk, len)) {
+			return addopwopnd(OP_PUSHREF, &i, sizeof(i), dstp, lenp);
+		}
+	}
+
 	return C_UNK;
+}
+
+int addtoken_MAIN(cunit **cup, char *tk, size_t len) {
+	cunit *cu = *cup;
+
+	if (strkeq(":", tk, len)) {
+		cu = realloc(cu, sizeof(cunit) + sizeof(struct cunitdef) * (cu->ndefs + 1));
+		if (!cu) {
+			return C_OOM;
+		}
+		*cup = cu;
+
+		cu->defs[cu->ndefs].name = NULL;
+		cu->defs[cu->ndefs].bodylen = 0;
+		cu->defs[cu->ndefs].body = calloc(1, 128);
+		if (!cu->defs[cu->ndefs].body) {
+			return C_OOM;
+		}
+		cu->state = CS_DEF_NAME;
+		cu->ndefs++;
+		return C_OK;
+	}
+
+	if (strkeq(";", tk, len)) {
+		return C_NOT_IN_DEF;
+	}
+
+	if (strkeq(".var", tk, len)) {
+		cu->state = CS_VAR_NAME;
+		return C_OK;
+	}
+
+	return addinstr(cup, tk, len, &cu->main, &cu->mainlen);
+}
+
+int addtoken_DEF_NAME(cunit **cup, char *tk, size_t len) {
+	cunit *cu = *cup;
+
+	// TODO: verify name legality
+	cu->defs[cu->ndefs - 1].name = malloc(len + 1);
+	if (!cu->defs[cu->ndefs - 1].name) {
+		return C_OOM;
+	}
+	memcpy(cu->defs[cu->ndefs - 1].name, tk, len);
+	cu->defs[cu->ndefs - 1].name[len] = 0;
+
+	cu->state = CS_DEF_BODY;
+
+	return C_OK;
+}
+
+int addtoken_DEF_BODY(cunit **cup, char *tk, size_t len) {
+	cunit *cu = *cup;
+
+	if (strkeq(":", tk, len)) {
+		return C_IN_DEF;
+	}
+
+	if (strkeq(";", tk, len)) {
+		cu->state = CS_MAIN;
+		return C_OK;
+	}
+
+	return addinstr(cup, tk, len, &cu->defs[cu->ndefs - 1].body, &cu->defs[cu->ndefs - 1].bodylen);
+}
+
+int addtoken_VAR_NAME(cunit **cup, char *tk, size_t len) {
+	cunit *cu = *cup;
+
+	// TODO: verify name legality
+	char **vars = realloc(cu->vars, sizeof(char **) * (cu->nvars + 1));
+	if (!vars) {
+		return C_OOM;
+	}
+	cu->vars = vars;
+
+	char *var = malloc(len + 1);
+	if (!var) {
+		return C_OOM;
+	}
+	memcpy(var, tk, len);
+	var[len] = 0;
+
+	cu->vars[cu->nvars] = var;
+	cu->nvars++;
+
+	cu->state = CS_MAIN;
+
+	return C_OK;
+}
+
+int addtoken(cunit **cup, char *tk, size_t len) {
+	switch ((*cup)->state) {
+	case CS_MAIN:
+		return addtoken_MAIN(cup, tk, len);
+	case CS_DEF_NAME:
+		return addtoken_DEF_NAME(cup, tk, len);
+	case CS_DEF_BODY:
+		return addtoken_DEF_BODY(cup, tk, len);
+	case CS_VAR_NAME:
+		return addtoken_VAR_NAME(cup, tk, len);
+	}
 }
 
 void skipspace(char **s, size_t *len) {

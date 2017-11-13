@@ -5,9 +5,11 @@ typedef struct frame {
 	enum {
 		F_STR,
 		F_INT,
+		F_REF,
 	} tp;
 	char *        s;
 	int           i;
+	size_t        ref;
 	struct frame *down;
 } frame;
 
@@ -15,9 +17,12 @@ typedef struct frame {
 extern frame *stack;
 #endif
 
-frame *pushs(char *s);
-frame *pushi(int i);
-void   pushf(frame *f);
+frame *pushs(char *);
+frame *pushi(int);
+frame *pushref(size_t);
 void   pop();
+
+frame *copyframe(frame *);
+void   freeframe(frame *);
 
 #endif

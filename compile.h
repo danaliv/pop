@@ -6,9 +6,16 @@
 #include <stdint.h>
 
 typedef struct {
-	bool     indef;
+	enum {
+		CS_MAIN,
+		CS_DEF_NAME,
+		CS_DEF_BODY,
+		CS_VAR_NAME,
+	} state;
 	size_t   mainlen;
 	uint8_t *main;
+	size_t   nvars;
+	char **  vars;
 	size_t   ndefs;
 	struct cunitdef {
 		char *   name;

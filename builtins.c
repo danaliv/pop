@@ -82,6 +82,9 @@ int builtin_pick(void) {
 	case F_INT:
 		f = pushi(f->i);
 		break;
+	case F_REF:
+		f = pushref(f->ref);
+		break;
 	}
 	if (!f) {
 		return E_OOM;
@@ -100,6 +103,9 @@ int builtin_puts(void) {
 		break;
 	case F_INT:
 		printf("%d\n", stack->i);
+		break;
+	case F_REF:
+		printf("VAR#%lu\n", stack->ref);
 		break;
 	}
 	pop();
@@ -196,6 +202,9 @@ int builtin_DEBUG_stack(void) {
 		case F_INT:
 			printf("    tp = F_INT\n");
 			break;
+		case F_REF:
+			printf("    tp = F_REF\n");
+			break;
 		}
 		if (f->s) {
 			printf("    s = 0x%016lx \"%s\"\n", (uintptr_t) f->s, f->s);
@@ -203,6 +212,7 @@ int builtin_DEBUG_stack(void) {
 			printf("    s = 0x0000000000000000\n");
 		}
 		printf("    i = %d\n", f->i);
+		printf("    ref = %lu\n", f->ref);
 		printf("    down = 0x%016lx\n", (uintptr_t) f->down);
 		printf("}\n");
 		f = f->down;
