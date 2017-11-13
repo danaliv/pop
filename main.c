@@ -28,7 +28,7 @@ int rerrexit(int res) {
 	}
 }
 
-void printstack() {
+void printstack(cunit *cu) {
 	putchar('(');
 	frame *f[4];
 	f[3] = stack;
@@ -54,7 +54,7 @@ void printstack() {
 				printf("%d", f[i]->i);
 				break;
 			case F_REF:
-				printf("VAR#%lu", f[i]->ref);
+				printf("VAR#%s", cu->vars[f[i]->ref]);
 				break;
 			}
 		}
@@ -78,7 +78,7 @@ int repl() {
 		char * line;
 		size_t len;
 
-		printstack();
+		printstack(cu);
 		if (cu->state == CS_DEF_NAME || cu->state == CS_DEF_BODY) {
 			printf(" :   ");
 		} else {

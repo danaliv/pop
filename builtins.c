@@ -230,7 +230,7 @@ int builtin_DEBUG_stack(void) {
 			printf("    s = 0x0000000000000000\n");
 		}
 		printf("    i = %d\n", f->i);
-		printf("    ref = %lu\n", f->ref);
+		printf("    ref = VAR#%lu\n", f->ref);
 		printf("    down = 0x%016lx\n", (uintptr_t) f->down);
 		printf("}\n");
 		f = f->down;
