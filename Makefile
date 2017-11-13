@@ -3,7 +3,7 @@ CLANG_FORMAT ?= clang-format
 
 .PHONY: clean format test
 
-objs=main.o stack.o compile.o exec.o builtins.o
+objs=main.o stack.o compile.o exec.o builtins.o memory.o
 
 pop: $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o pop $(objs)

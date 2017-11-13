@@ -19,8 +19,6 @@ void usage() {
 
 int rerrexit(int res) {
 	switch (res) {
-	case E_OOM:
-		return EX_OSERR;
 	case E_NO_VAL:
 		return EX_SOFTWARE;
 	default:
@@ -115,9 +113,6 @@ int repl() {
 		} else {
 			pcerror(res);
 			cu->mainlen = 0;
-			if (res == C_OOM) {
-				return EX_OSERR;
-			}
 		}
 	}
 
@@ -196,9 +191,6 @@ int evalstr(char *str) {
 		}
 	} else {
 		pcerror(res);
-		if (res == C_OOM) {
-			return EX_OSERR;
-		}
 		return EX_DATAERR;
 	}
 

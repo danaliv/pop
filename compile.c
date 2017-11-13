@@ -6,27 +6,17 @@
 #include "builtins.h"
 #include "compile.h"
 #include "exec.h"
+#include "memory.h"
 
 cunit *newcunit() {
-	cunit *cu = malloc(sizeof(cunit));
-	if (cu) {
-		cu->state = CS_MAIN;
-		cu->incomment = false;
-		cu->mainlen = 0;
-		cu->main = calloc(1, 128);
-		if (!cu->main) {
-			free(cu);
-			return NULL;
-		}
-		cu->nvars = 0;
-		cu->vars = calloc(4, sizeof(char *));
-		if (!cu->vars) {
-			free(cu->main);
-			free(cu);
-			return NULL;
-		}
-		cu->ndefs = 0;
-	}
+	cunit *cu = xmalloc(sizeof(cunit));
+	cu->state = CS_MAIN;
+	cu->incomment = false;
+	cu->mainlen = 0;
+	cu->main = xcalloc(1, 128);
+	cu->nvars = 0;
+	cu->vars = xcalloc(4, sizeof(char *));
+	cu->ndefs = 0;
 	return cu;
 }
 
@@ -58,13 +48,8 @@ bool strkeq(const char *k, char *s, size_t slen) {
 }
 
 int addopwopnd(uint8_t op, void *opnd, size_t opndlen, uint8_t **dstp, size_t *lenp) {
+	xrealloc((void **) dstp, *lenp + 1 + opndlen);
 	uint8_t *dst = *dstp;
-
-	dst = realloc(dst, *lenp + 1 + opndlen);
-	if (!dst) {
-		return C_OOM;
-	}
-	*dstp = dst;
 
 	dst[*lenp] = op;
 	++*lenp;
@@ -81,24 +66,22 @@ int addop(uint8_t op, uint8_t **dstp, size_t *lenp) {
 }
 
 char *parsestr(char *tk, size_t len) {
-	char *s = malloc(len);
-	if (s) {
-		size_t ti, si;
-		for (ti = 1, si = 0; ti < len; ti++, si++) {
-			if (tk[ti] == '"') {
-				break;
-			}
-			if (tk[ti] == '\\') {
-				ti++;
-				if (ti < len && tk[ti] == 'n') {
-				    s[si] = '\n';
-				    continue;
-				}
-			}
-			s[si] = tk[ti];
+	char * s = xmalloc(len);
+	size_t ti, si;
+	for (ti = 1, si = 0; ti < len; ti++, si++) {
+		if (tk[ti] == '"') {
+			break;
 		}
-		s[si] = 0;
+		if (tk[ti] == '\\') {
+			ti++;
+			if (ti < len && tk[ti] == 'n') {
+				s[si] = '\n';
+				continue;
+			}
+		}
+		s[si] = tk[ti];
 	}
+	s[si] = 0;
 	return s;
 }
 
@@ -144,11 +127,7 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	// string pushes
 	if (*tk == '"') {
 		char *s = parsestr(tk, len);
-		if (!s) {
-			return C_OOM;
-		}
-
-		int res = addopwopnd(OP_PUSHS, s, strlen(s) + 1, dstp, lenp);
+		int   res = addopwopnd(OP_PUSHS, s, strlen(s) + 1, dstp, lenp);
 		free(s);
 		return res;
 	}
@@ -214,18 +193,11 @@ int addtoken_MAIN(cunit **cup, char *tk, size_t len) {
 	cunit *cu = *cup;
 
 	if (strkeq(":", tk, len)) {
-		cu = realloc(cu, sizeof(cunit) + sizeof(struct cunitdef) * (cu->ndefs + 1));
-		if (!cu) {
-			return C_OOM;
-		}
-		*cup = cu;
+		cu = xrealloc((void **) cup, sizeof(cunit) + sizeof(struct cunitdef) * (cu->ndefs + 1));
 
 		cu->defs[cu->ndefs].name = NULL;
 		cu->defs[cu->ndefs].bodylen = 0;
-		cu->defs[cu->ndefs].body = calloc(1, 128);
-		if (!cu->defs[cu->ndefs].body) {
-			return C_OOM;
-		}
+		cu->defs[cu->ndefs].body = xcalloc(1, 128);
 		cu->state = CS_DEF_NAME;
 		cu->ndefs++;
 		return C_OK;
@@ -247,10 +219,7 @@ int addtoken_DEF_NAME(cunit **cup, char *tk, size_t len) {
 	cunit *cu = *cup;
 
 	// TODO: verify name legality
-	cu->defs[cu->ndefs - 1].name = malloc(len + 1);
-	if (!cu->defs[cu->ndefs - 1].name) {
-		return C_OOM;
-	}
+	cu->defs[cu->ndefs - 1].name = xmalloc(len + 1);
 	memcpy(cu->defs[cu->ndefs - 1].name, tk, len);
 	cu->defs[cu->ndefs - 1].name[len] = 0;
 
@@ -278,16 +247,9 @@ int addtoken_VAR_NAME(cunit **cup, char *tk, size_t len) {
 	cunit *cu = *cup;
 
 	// TODO: verify name legality
-	char **vars = realloc(cu->vars, sizeof(char **) * (cu->nvars + 1));
-	if (!vars) {
-		return C_OOM;
-	}
-	cu->vars = vars;
+	xrealloc((void **) &cu->vars, sizeof(char **) * (cu->nvars + 1));
 
-	char *var = malloc(len + 1);
-	if (!var) {
-		return C_OOM;
-	}
+	char *var = xmalloc(len + 1);
 	memcpy(var, tk, len);
 	var[len] = 0;
 
@@ -396,9 +358,6 @@ void pcerror(int err) {
 	switch (err) {
 	case C_IN_DEF:
 		fprintf(stderr, "Can't use : inside a word definition\n");
-		break;
-	case C_OOM:
-		fprintf(stderr, "Out of memory\n");
 		break;
 	case C_UNK:
 		fprintf(stderr, "Unrecognized word\n");

@@ -6,9 +6,7 @@
 #include "stack.h"
 
 int builtin_rot(void) {
-	if (!pushi(3)) {
-		return E_OOM;
-	}
+	pushi(3);
 	return builtin_rotate();
 }
 
@@ -49,11 +47,8 @@ int builtin_rotate(void) {
 }
 
 int builtin_over(void) {
-	if (!pushi(2)) {
-		return E_OOM;
-	}
+	pushi(2);
 	return builtin_pick();
-	return E_OK;
 }
 
 int builtin_pick(void) {
@@ -78,17 +73,14 @@ int builtin_pick(void) {
 
 	switch (f->tp) {
 	case F_STR:
-		f = pushs(f->s);
+		pushs(f->s);
 		break;
 	case F_INT:
-		f = pushi(f->i);
+		pushi(f->i);
 		break;
 	case F_REF:
-		f = pushref(f->ref);
+		pushref(f->ref);
 		break;
-	}
-	if (!f) {
-		return E_OOM;
 	}
 
 	return E_OK;
@@ -104,9 +96,7 @@ int builtin_getenv(void) {
 
 	char *val = getenv(stack->s);
 	pop();
-	if (!pushs(val ? val : "")) {
-		return E_OOM;
-	}
+	pushs(val ? val : "");
 
 	return E_OK;
 }
@@ -142,9 +132,7 @@ int builtin_add(void) {
 	int b = stack->down->i;
 	pop();
 	pop();
-	if (!pushi(a + b)) {
-		return E_OOM;
-	}
+	pushi(a + b);
 
 	return E_OK;
 }
@@ -161,9 +149,7 @@ int builtin_sub(void) {
 	int b = stack->down->i;
 	pop();
 	pop();
-	if (!pushi(b - a)) {
-		return E_OOM;
-	}
+	pushi(b - a);
 
 	return E_OK;
 }
@@ -180,9 +166,7 @@ int builtin_mul(void) {
 	int b = stack->down->i;
 	pop();
 	pop();
-	if (!pushi(a * b)) {
-		return E_OOM;
-	}
+	pushi(a * b);
 
 	return E_OK;
 }
@@ -202,9 +186,7 @@ int builtin_div(void) {
 	int b = stack->down->i;
 	pop();
 	pop();
-	if (!pushi(b / a)) {
-		return E_OOM;
-	}
+	pushi(b / a);
 
 	return E_OK;
 }

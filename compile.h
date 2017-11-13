@@ -28,7 +28,6 @@ typedef struct {
 enum {
 	C_OK = 0,
 	C_IN_DEF,
-	C_OOM,
 	C_UNK,
 	C_NOT_IN_DEF,
 	C_UNTERM_STR,

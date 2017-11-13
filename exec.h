@@ -22,7 +22,6 @@ enum {
 	E_OK = 0,
 	E_EMPTY,
 	E_NO_VAL,
-	E_OOM,
 	E_UNDEF,
 	E_TOOFEW,
 	E_TYPE,

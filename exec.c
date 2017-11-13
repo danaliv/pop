@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "exec.h"
+#include "memory.h"
 #include "stack.h"
 
 int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
@@ -38,17 +39,14 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			}
 			switch (stack->tp) {
 			case F_STR:
-				f = pushs(stack->s);
+				pushs(stack->s);
 				break;
 			case F_INT:
-				f = pushi(stack->i);
+				pushi(stack->i);
 				break;
 			case F_REF:
-				f = pushref(stack->ref);
+				pushref(stack->ref);
 				break;
-			}
-			if (!f) {
-				return E_OOM;
 			}
 			break;
 
@@ -57,9 +55,7 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			if (i > len - 2) {
 				return E_NO_VAL;
 			}
-			if (!pushs((char *) &body[i + 1])) {
-				return E_OOM;
-			}
+			pushs((char *) &body[i + 1]);
 			while (body[i]) {
 				i++;
 			}
@@ -68,18 +64,14 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 			if (i > len - (sizeof(int) + 1)) {
 				return E_NO_VAL;
 			}
-			if (!pushi(*(int *) &body[i + 1])) {
-				return E_OOM;
-			}
+			pushi(*(int *) &body[i + 1]);
 			i += sizeof(int);
 			break;
 		case OP_PUSHREF:
 			if (i > len - (sizeof(size_t) + 1)) {
 				return E_NO_VAL;
 			}
-			if (!pushref(*(size_t *) &body[i + 1])) {
-				return E_OOM;
-			}
+			pushref(*(size_t *) &body[i + 1]);
 			i += sizeof(size_t);
 			break;
 
@@ -126,11 +118,7 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 				ctx->vars[stack->ref] = NULL;
 			}
 
-			f = copyframe(stack->down);
-			if (!f) {
-				return E_OOM;
-			}
-			ctx->vars[stack->ref] = f;
+			ctx->vars[stack->ref] = copyframe(stack->down);
 			pop();
 			pop();
 			break;
@@ -144,17 +132,12 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 
 			if (ctx->vars[stack->ref]) {
 				f = copyframe(ctx->vars[stack->ref]);
-				if (f) {
-					pop();
-					f->down = stack;
-					stack = f;
-				}
+				pop();
+				f->down = stack;
+				stack = f;
 			} else {
 				pop();
-				f = pushi(0);
-			}
-			if (!f) {
-				return E_OOM;
+				pushi(0);
 			}
 			break;
 		}
@@ -174,28 +157,15 @@ int run(cunit *cu, exctx **ctxp) {
 
 	// allocate context if necessary
 	if (!ctx) {
-		ctx = malloc(sizeof(exctx));
-		if (!ctx) {
-			return E_OOM;
-		}
-		*ctxp = ctx;
+		*ctxp = ctx = xmalloc(sizeof(exctx));
 
 		ctx->nvars = cu->nvars ? cu->nvars : 4;
-		ctx->vars = calloc(ctx->nvars, sizeof(frame *));
-		if (!ctx->vars) {
-			free(ctx);
-			return E_OOM;
-		}
-		bzero(ctx->vars, ctx->nvars * sizeof(frame *));
+		ctx->vars = xcalloc(ctx->nvars, sizeof(frame *));
 	}
 
 	// grow context's variable array if necessary
 	if (ctx->nvars < cu->nvars) {
-		frame **vars = realloc(ctx->vars, sizeof(frame *) * cu->nvars);
-		if (!vars) {
-			return E_OOM;
-		}
-		ctx->vars = vars;
+		xrealloc((void **) &ctx->vars, sizeof(frame *) * cu->nvars);
 		for (size_t i = ctx->nvars; i < cu->nvars; i++) {
 			ctx->vars[i] = NULL;
 		}
@@ -213,9 +183,6 @@ void prerror(int err) {
 		break;
 	case E_NO_VAL:
 		fprintf(stderr, "Malformed bytecode (internal error)\n");
-		break;
-	case E_OOM:
-		fprintf(stderr, "Out of memory\n");
 		break;
 	case E_UNDEF:
 		fprintf(stderr, "Unknown word\n");
