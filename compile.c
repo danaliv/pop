@@ -178,11 +178,14 @@ int addinstr(cunit **cup, char *tk, size_t len, uint8_t **dstp, size_t *lenp) {
 	CALLC_OP("over", builtin_over);
 	CALLC_OP("pick", builtin_pick);
 	CALLC_OP("puts", builtin_puts);
+	CALLC_OP(".", builtin_puts);
 	CALLC_OP("+", builtin_add);
 	CALLC_OP("-", builtin_sub);
 	CALLC_OP("*", builtin_mul);
 	CALLC_OP("/", builtin_div);
+
 	CALLC_OP("DEBUG_stack", builtin_DEBUG_stack);
+	CALLC_OP("DEBUG_puts_all", builtin_DEBUG_puts_all);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->ndefs; i++) {

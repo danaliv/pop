@@ -219,3 +219,10 @@ int builtin_DEBUG_stack(void) {
 	}
 	return E_OK;
 }
+
+int builtin_DEBUG_puts_all(void) {
+	while (stack) {
+		builtin_puts();
+	}
+	return E_OK;
+}

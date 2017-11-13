@@ -14,5 +14,6 @@ int builtin_mul(void);
 int builtin_div(void);
 
 int builtin_DEBUG_stack(void);
+int builtin_DEBUG_puts_all(void);
 
 #endif

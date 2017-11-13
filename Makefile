@@ -1,7 +1,7 @@
 CFLAGS = -g -Wall -Wextra -Wpedantic
 CLANG_FORMAT ?= clang-format
 
-.PHONY: clean format
+.PHONY: clean format test
 
 objs=main.o stack.o compile.o exec.o builtins.o
 
@@ -13,6 +13,9 @@ clean:
 
 format:
 	$(CLANG_FORMAT) -i *.c *.h
+
+test: pop
+	ruby tests/runner.rb
 
 deps := $(objs:.o=.d)
 

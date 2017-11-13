@@ -165,7 +165,7 @@ int runv(cunit *cu, uint8_t *body, size_t len, exctx *ctx) {
 
 int run(cunit *cu, exctx **ctxp) {
 	// if caller passed NULL for context pointer, use a local context
-	exctx *ctx1;
+	exctx *ctx1 = NULL;
 	if (!ctxp) {
 		ctxp = &ctx1;
 	}
@@ -186,6 +186,7 @@ int run(cunit *cu, exctx **ctxp) {
 			free(ctx);
 			return E_OOM;
 		}
+		bzero(ctx->vars, ctx->nvars * sizeof(frame *));
 	}
 
 	// grow context's variable array if necessary
