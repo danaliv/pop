@@ -1,6 +1,9 @@
 #ifndef __BUILTINS_H__
 #define __BUILTINS_H__
 
+int builtin_pop(void);
+int builtin_swap(void);
+int builtin_dup(void);
 int builtin_rot(void);
 int builtin_rotate(void);
 int builtin_over(void);

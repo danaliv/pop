@@ -5,6 +5,41 @@
 #include "exec.h"
 #include "stack.h"
 
+int builtin_pop(void) {
+	if (!stack) return E_EMPTY;
+	pop();
+	return E_OK;
+}
+
+int builtin_swap(void) {
+	if (!stack || !stack->down) return E_TOOFEW;
+
+	frame *f = stack;
+	stack = stack->down;
+	f->down = stack->down;
+	stack->down = f;
+
+	return E_OK;
+}
+
+int builtin_dup(void) {
+	if (!stack) return E_EMPTY;
+
+	switch (stack->tp) {
+	case F_STR:
+		pushs(stack->s);
+		break;
+	case F_INT:
+		pushi(stack->i);
+		break;
+	case F_REF:
+		pushref(stack->ref);
+		break;
+	}
+
+	return E_OK;
+}
+
 int builtin_rot(void) {
 	pushi(3);
 	return builtin_rotate();

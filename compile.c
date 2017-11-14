@@ -140,20 +140,17 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstv);
 	}
 
-		// simple builtins
-#define SIMPLE_OP(k, op) \
+		// special builtins
+#define SPECIAL_OP(k, op) \
 	if (strkeq(k, tk, len)) { \
 		return addop(op, dstv); \
 	}
 
-	SIMPLE_OP("pop", OP_POP);
-	SIMPLE_OP("swap", OP_SWAP);
-	SIMPLE_OP("dup", OP_DUP);
-	SIMPLE_OP("!", OP_STORE);
-	SIMPLE_OP("@", OP_FETCH);
-	SIMPLE_OP("if", OP_IF);
-	SIMPLE_OP("else", OP_ELSE);
-	SIMPLE_OP("then", OP_THEN);
+	SPECIAL_OP("!", OP_STORE);
+	SPECIAL_OP("@", OP_FETCH);
+	SPECIAL_OP("if", OP_IF);
+	SPECIAL_OP("else", OP_ELSE);
+	SPECIAL_OP("then", OP_THEN);
 
 	// builtins implemented by C functions
 #define CALLC_OP(k, f) \
@@ -162,6 +159,9 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstv); \
 	}
 
+	CALLC_OP("pop", builtin_pop);
+	CALLC_OP("swap", builtin_swap);
+	CALLC_OP("dup", builtin_dup);
 	CALLC_OP("rot", builtin_rot);
 	CALLC_OP("rotate", builtin_rotate);
 	CALLC_OP("over", builtin_over);
