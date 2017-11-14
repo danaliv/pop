@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "builtins.h"
 #include "exec.h"
@@ -224,6 +225,36 @@ int builtin_div(void) {
 	pushi(b / a);
 
 	return E_OK;
+}
+
+int builtin_eq(void) {
+    if (!stack || !stack->down) return E_TOOFEW;
+
+    if (stack->tp != stack->down->tp) {
+        pop();
+        pop();
+        pushi(0);
+        return E_OK;
+    }
+
+    int eq = 0;
+    switch (stack->tp) {
+    case F_STR:
+        eq = strcmp(stack->s, stack->down->s) ? 0 : 1;
+        break;
+    case F_INT:
+        eq = stack->i == stack->down->i ? 1 : 0;
+        break;
+    case F_REF:
+        eq = stack->ref == stack->down->ref ? 1 : 0;
+        break;
+    }
+
+    pop();
+    pop();
+    pushi(eq);
+
+    return E_OK;
 }
 
 int builtin_DEBUG_stack(void) {

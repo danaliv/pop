@@ -87,6 +87,10 @@ Multiplies the top two values.
 ### / ( i1 i2 -- i3 )
 Divides i1 by i2.
 
+### = ( x y -- i )
+If x and y are equal, pushes 1, otherwise pushes 0. The values can be any type
+but only like types can be equal. String comparisons are case-sensitive.
+
 ### . ( x -- )
 Prints the top value. Aliased to `puts`.
 
