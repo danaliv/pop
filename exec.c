@@ -22,6 +22,86 @@ void freeexctx(exctx *ctx) {
 	free(ctx);
 }
 
+static void skipop(vecbk *bodyv, size_t *ip) {
+	const uint8_t *body = *bodyv->itemsp;
+
+    switch (body[*ip]) {
+        case OP_PUSHS:
+        case OP_CALLI:
+            for (++*ip; *ip < bodyv->len; ++*ip) {
+                if (body[*ip] == '\0') break;
+            }
+            break;
+        case OP_PUSHI:
+            (*ip) += sizeof(int);
+            break;
+        case OP_PUSHREF:
+            (*ip) += sizeof(size_t);
+            break;
+        case OP_CALLC:
+            (*ip) += sizeof(callable *);
+            break;
+    }
+}
+
+static int op_if(vecbk *bodyv, size_t *ip) {
+	if (!stack) return E_EMPTY;
+	if (stack->tp != F_INT) return E_TYPE;
+
+    // is the top value nonzero? continue executing normally
+	int n = stack->i;
+	pop();
+	if (n) return E_OK;
+
+    // otherwise, find the matching ELSE or THEN
+	const uint8_t *body = *bodyv->itemsp;
+	size_t depth = 1;
+
+    for (++*ip; *ip < bodyv->len; ++*ip) {
+        switch (body[*ip]) {
+        case OP_IF:
+            depth++;
+            break;
+        case OP_ELSE:
+            if (depth == 1) return E_OK;
+            break;
+        case OP_THEN:
+            depth--;
+            if (depth == 0) return E_OK;
+            break;
+        default:
+            skipop(bodyv, ip);
+        }
+    }
+
+    return E_NO_THEN;
+}
+
+static int op_else(vecbk *bodyv, size_t *ip) {
+    // find the matching THEN
+	const uint8_t *body = *bodyv->itemsp;
+	size_t depth = 1;
+
+    for (++*ip; *ip < bodyv->len; ++*ip) {
+        switch (body[*ip]) {
+        case OP_IF:
+            depth++;
+            break;
+        case OP_ELSE:
+            if (depth == 1) return E_STRAY_ELSE;
+            break;
+        case OP_THEN:
+            depth--;
+            if (depth == 0) return E_OK;
+            break;
+        default:
+            skipop(bodyv, ip);
+        }
+    }
+
+    return E_NO_THEN;
+}
+
 int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 	int      res;
 	frame *  f;
@@ -156,6 +236,19 @@ int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 			f->down = stack;
 			stack = f;
 			break;
+
+		case OP_IF:
+			res = op_if(bodyv, &i);
+			if (res != E_OK) {
+				return res;
+			}
+			break;
+		case OP_ELSE:
+		    res = op_else(bodyv, &i);
+		    if (res != E_OK) {
+		        return res;
+		    }
+		    break;
 		}
 	}
 
@@ -204,5 +297,11 @@ void prerror(int err) {
 	case E_RANGE:
 		fprintf(stderr, "Integer value out of range\n");
 		break;
+	case E_NO_THEN:
+	    fprintf(stderr, "Unterminated IF\n");
+	    break;
+	case E_STRAY_ELSE:
+	    fprintf(stderr, "ELSE with no IF\n");
+	    break;
 	}
 }

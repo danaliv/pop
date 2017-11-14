@@ -93,9 +93,17 @@ Prints the top value. Aliased to `puts`.
 ### dup ( x -- x x )
 Duplicates the value on the top of the stack.
 
+### else ( -- )
+Execution skips to the next `then` that is not part of a nested `if`.
+
 ### getenv ( s1 -- s2 )
 Gets the value of the environment variable named s1. If no such variable is
 set, pushes `""`.
+
+### if ( i -- )
+If the value on the stack is non-zero, execution proceeds normally. Otherwise,
+execution skips to the next `else` or `then` (not counting any `else` or
+`then` that occurs in any intervening nested `if`).
 
 ### over ( x y -- x y x )
 Duplicates the second value and places the copy on to the top of the stack.
@@ -118,6 +126,9 @@ Moves the ith value on the stack to the top.
 
 ### swap ( x y -- y x )
 Swaps the top two values.
+
+### then ( -- )
+Marks the end of an `if`.
 
 
 ## Inspiration

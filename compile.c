@@ -151,6 +151,9 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	SIMPLE_OP("dup", OP_DUP);
 	SIMPLE_OP("!", OP_STORE);
 	SIMPLE_OP("@", OP_FETCH);
+	SIMPLE_OP("if", OP_IF);
+	SIMPLE_OP("else", OP_ELSE);
+	SIMPLE_OP("then", OP_THEN);
 
 	// builtins implemented by C functions
 #define CALLC_OP(k, f) \
