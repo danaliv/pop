@@ -18,7 +18,7 @@ enum {
 	OP_STORE,
 	OP_FETCH,
 	OP_JP,
-	OP_PJNZ,
+	OP_PJZ,
 };
 
 enum {

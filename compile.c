@@ -131,7 +131,7 @@ static int addif(cunit *cu, vecbk *dstv) {
 	ifp->ifi = dstv->len;
 	ifp->haselse = false;
 
-	return addopwopnd(OP_PJNZ, &tmpaddr, sizeof(size_t), dstv);
+	return addopwopnd(OP_PJZ, &tmpaddr, sizeof(size_t), dstv);
 }
 
 static int addelse(cunit *cu, vecbk *dstv) {

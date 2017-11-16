@@ -85,7 +85,7 @@ static int op_jp(vecbk *bodyv, size_t *ip) {
 	return E_OK;
 }
 
-static int op_pjnz(vecbk *bodyv, size_t *ip) {
+static int op_pjz(vecbk *bodyv, size_t *ip) {
 	STACK_HAS_1(F_INT);
 
 	if (stack->i) {
@@ -177,8 +177,8 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 		case OP_JP:
 			res = op_jp(bodyv, &i);
 			break;
-		case OP_PJNZ:
-			res = op_pjnz(bodyv, &i);
+		case OP_PJZ:
+			res = op_pjz(bodyv, &i);
 			break;
 		case OP_PUSHI:
 			res = op_pushi(bodyv, &i);
