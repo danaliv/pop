@@ -12,10 +12,11 @@ class TestControlFlow < Test
         assert_output '0 if "a" 1 if "b" else "c" then "d" else "e" then "f"', "f\ne\n"
         assert_output '1 if "a" 0 if "b" else "c" then "d" else "e" then "f"', "f\nd\nc\na\n"
         assert_output '0 if "a" 0 if "b" else "c" then "d" else "e" then "f"', "f\ne\n"
-        assert_error "if", "Stack underflow\n"
-        assert_error '"hi" if', "Wrong type(s) on stack\n"
-        assert_error "else", "Unterminated IF\n"
-        assert_error "0 if", "Unterminated IF\n"
-        assert_error "1 if else else", "ELSE with no IF\n"
+        assert_error "if then", "Stack underflow\n"
+        assert_error '"hi" if then', "Wrong type(s) on stack\n"
+        assert_error "else", "line 1: ELSE with no IF\n"
+        assert_error "then", "line 1: THEN with no IF\n"
+        assert_error "0 if", "line 1: IF with no THEN\n"
+        assert_error "1 if else else", "line 1: ELSE with no IF\n"
     end
 end

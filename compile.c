@@ -15,6 +15,7 @@ cunit *newcunit() {
 	cu->mainv = newvec(128, sizeof(uint8_t), (void **) &cu->main);
 	cu->varsv = newvec(4, sizeof(char *), (void **) &cu->vars);
 	cu->defsv = newvec(4, sizeof(struct cunitdef), (void **) &cu->defs);
+	cu->ifsv = newvec(4, sizeof(struct cunitif), (void **) &cu->ifs);
 	return cu;
 }
 
@@ -30,6 +31,9 @@ void freecunit(cunit *cu) {
 		vfree(cu->defs[i].bodyv);
 	}
 	vfree(cu->defsv);
+
+	vfree(cu->mainv);
+	vfree(cu->ifsv);
 
 	free(cu);
 }
@@ -117,6 +121,55 @@ bool parseint(char *tk, size_t len, int *n) {
 	return true;
 }
 
+static size_t tmpaddr = -1;
+
+static int addif(cunit *cu, vecbk *dstv) {
+	vadd(cu->ifsv);
+
+	struct cunitif *ifp = cu->ifs + cu->ifsv->len - 1;
+
+	ifp->ifi = dstv->len;
+	ifp->haselse = false;
+
+	return addopwopnd(OP_PJNZ, &tmpaddr, sizeof(size_t), dstv);
+}
+
+static int addelse(cunit *cu, vecbk *dstv) {
+	if (cu->ifsv->len == 0) return C_STRAY_ELSE;
+
+	struct cunitif *ifp = cu->ifs + cu->ifsv->len - 1;
+
+	if (ifp->haselse) return C_STRAY_ELSE;
+
+	ifp->elsei = dstv->len;
+	ifp->haselse = true;
+
+	return addopwopnd(OP_JP, &tmpaddr, sizeof(size_t), dstv);
+}
+
+static int addthen(cunit *cu, vecbk *dstv) {
+	if (cu->ifsv->len == 0) return C_STRAY_THEN;
+	cu->ifsv->len--;
+
+	uint8_t *       body = (uint8_t *) *dstv->itemsp;
+	struct cunitif *ifp = cu->ifs + cu->ifsv->len;
+
+	if (ifp->haselse) {
+		*(size_t *) &body[ifp->ifi + 1] = ifp->elsei + 1 + sizeof(size_t);
+		*(size_t *) &body[ifp->elsei + 1] = dstv->len;
+	} else {
+		*(size_t *) &body[ifp->ifi + 1] = dstv->len;
+	}
+
+	return C_OK;
+}
+
+#define CALLC_OP(k, f) \
+	if (strkeq(k, tk, len)) { \
+		callable *fp = &f; \
+		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstv); \
+	}
+
 int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	// string pushes
 	if (*tk == '"') {
@@ -132,25 +185,16 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstv);
 	}
 
-		// core VM ops
-#define OP(k, op) \
-	if (strkeq(k, tk, len)) { \
-		return addop(op, dstv); \
-	}
+	// core VM ops
+	if (strkeq("!", tk, len)) return addop(OP_STORE, dstv);
+	if (strkeq("@", tk, len)) return addop(OP_FETCH, dstv);
 
-	OP("!", OP_STORE);
-	OP("@", OP_FETCH);
-	OP("if", OP_IF);
-	OP("else", OP_ELSE);
-	OP("then", OP_THEN);
+	// branches
+	if (strkeq("if", tk, len)) return addif(cu, dstv);
+	if (strkeq("else", tk, len)) return addelse(cu, dstv);
+	if (strkeq("then", tk, len)) return addthen(cu, dstv);
 
 	// builtins implemented by C functions/callc ops
-#define CALLC_OP(k, f) \
-	if (strkeq(k, tk, len)) { \
-		callable *fp = &f; \
-		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstv); \
-	}
-
 	CALLC_OP("pop", builtin_pop);
 	CALLC_OP("swap", builtin_swap);
 	CALLC_OP("dup", builtin_dup);
@@ -330,22 +374,60 @@ int compile(cunit *cu, char *s, size_t len) {
 	return C_OK;
 }
 
+int closecunit(cunit *cu) {
+	if (cu->incomment) return C_UNTERM_COMMENT;
+
+	switch (cu->state) {
+	case CS_DEF_NAME:
+	case CS_DEF_BODY:
+		return C_UNTERM_DEF;
+	case CS_VAR_NAME:
+		return C_UNTERM_VAR;
+	default:
+		if (cu->ifsv->len) return C_UNTERM_IF;
+	}
+
+	return C_OK;
+}
+
+bool isrunnable(cunit *cu) {
+	return cu->state == CS_MAIN && !cu->incomment && !cu->ifsv->len;
+}
+
 void pcerror(int err) {
 	switch (err) {
 	case C_IN_DEF:
-		fprintf(stderr, "Can't use : inside a word definition\n");
+		fputs("Can't use : inside a word definition\n", stderr);
 		break;
 	case C_UNK:
-		fprintf(stderr, "Unrecognized word\n");
+		fputs("Unrecognized word\n", stderr);
 		break;
 	case C_NOT_IN_DEF:
-		fprintf(stderr, "Can't use ; outside a word definition\n");
+		fputs("Can't use ; outside a word definition\n", stderr);
 		break;
 	case C_UNTERM_STR:
-		fprintf(stderr, "String has no end quote\n");
+		fputs("String has no end quote\n", stderr);
 		break;
 	case C_STR_SPACE:
-		fprintf(stderr, "No space after string\n");
+		fputs("No space after string\n", stderr);
+		break;
+	case C_STRAY_ELSE:
+		fputs("ELSE with no IF\n", stderr);
+		break;
+	case C_STRAY_THEN:
+		fputs("THEN with no IF\n", stderr);
+		break;
+	case C_UNTERM_COMMENT:
+		fputs("Unterminated comment\n", stderr);
+		break;
+	case C_UNTERM_IF:
+		fputs("IF with no THEN\n", stderr);
+		break;
+	case C_UNTERM_DEF:
+		fputs("Unterminated word definition\n", stderr);
+		break;
+	case C_UNTERM_VAR:
+		fputs(".var with no name\n", stderr);
 		break;
 	}
 }

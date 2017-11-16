@@ -2,8 +2,8 @@ class TestCompiler < Test
     def test_definition
         assert_output ': hello "hello world" . ;', ""
         assert_output ': hello "hello world" . ; hello', "hello world\n"
-        assert_error ":", "Program ends abruptly\n"
-        assert_error ': hello "hello world" .', "Program ends abruptly\n"
+        assert_error ":", "line 1: Unterminated word definition\n"
+        assert_error ': hello "hello world" .', "line 1: Unterminated word definition\n"
         assert_error ": hello :", "line 1: Can't use : inside a word definition\n"
         assert_error ";", "line 1: Can't use ; outside a word definition\n"
     end

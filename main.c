@@ -65,8 +65,14 @@ int repl() {
 			printf("  : %s > ", cu->defs[cu->defsv->len - 1].name);
 			break;
 		default:
-			printstack(cu);
-			printf(" > ");
+			if (cu->incomment) {
+				printf("  ( > ");
+			} else if (cu->ifsv->len) {
+				printf("  if > ");
+			} else {
+				printstack(cu);
+				printf(" > ");
+			}
 		}
 
 		line = fgetln(stdin, &len);
@@ -78,7 +84,7 @@ int repl() {
 
 		int res = compile(cu, line, len);
 		if (res == C_OK) {
-			if (cu->state == CS_MAIN) {
+			if (isrunnable(cu)) {
 				res = run(cu, ctx);
 				cu->mainv->len = 0;
 				if (res != E_OK) prerror(res);
@@ -123,12 +129,14 @@ int evalfile(FILE *file) {
 		lineno++;
 	}
 
-	if (cu->state != CS_MAIN) {
-		fputs("Program ends abruptly\n", stderr);
+	int res = closecunit(cu);
+	if (res != C_OK) {
+		fprintf(stderr, "line %lu: ", lineno - 1);
+		pcerror(res);
 		return EX_DATAERR;
 	}
 
-	int res = run(cu, NULL);
+	res = run(cu, NULL);
 	if (res != E_OK) {
 		prerror(res);
 		return EX_DATAERR;
@@ -141,18 +149,15 @@ int evalstr(char *str) {
 	cunit *cu = newcunit();
 
 	int res = compile(cu, str, strlen(str));
-	if (res == C_OK) {
-		if (cu->state != CS_MAIN) {
-			fputs("Program ends abruptly\n", stderr);
-			return EX_DATAERR;
-		}
-		res = run(cu, NULL);
-		if (res != E_OK) {
-			prerror(res);
-			return EX_DATAERR;
-		}
-	} else {
+	if (res == C_OK) res = closecunit(cu);
+	if (res != C_OK) {
 		pcerror(res);
+		return EX_DATAERR;
+	}
+
+	res = run(cu, NULL);
+	if (res != E_OK) {
+		prerror(res);
 		return EX_DATAERR;
 	}
 

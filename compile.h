@@ -28,6 +28,12 @@ typedef struct {
 		vecbk *  bodyv;
 		uint8_t *body;
 	} * defs;
+
+	vecbk *ifsv;
+	struct cunitif {
+		size_t ifi, elsei;
+		bool   haselse;
+	} * ifs;
 } cunit;
 
 enum {
@@ -37,12 +43,20 @@ enum {
 	C_NOT_IN_DEF,
 	C_UNTERM_STR,
 	C_STR_SPACE,
+	C_STRAY_ELSE,
+	C_STRAY_THEN,
+	C_UNTERM_DEF,
+	C_UNTERM_IF,
+	C_UNTERM_COMMENT,
+	C_UNTERM_VAR,
 };
 
 cunit *newcunit();
 void   freecunit(cunit *);
 
-int compile(cunit *, char *s, size_t len);
+int  compile(cunit *, char *s, size_t len);
+int  closecunit(cunit *);
+bool isrunnable(cunit *);
 
 void pcerror(int);
 

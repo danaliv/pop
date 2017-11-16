@@ -17,9 +17,8 @@ enum {
 	OP_CALLC,
 	OP_STORE,
 	OP_FETCH,
-	OP_IF,
-	OP_ELSE,
-	OP_THEN,
+	OP_JP,
+	OP_PJNZ,
 };
 
 enum {
@@ -29,8 +28,6 @@ enum {
 	E_TYPE,
 	E_DIV0,
 	E_RANGE,
-	E_NO_THEN,
-	E_STRAY_ELSE,
 };
 
 typedef struct {

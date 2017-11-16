@@ -28,28 +28,6 @@ static void bcabort() {
 	exit(EX_SOFTWARE);
 }
 
-static void skipop(vecbk *bodyv, size_t *ip) {
-	const uint8_t *body = *bodyv->itemsp;
-
-	switch (body[*ip]) {
-	case OP_PUSHS:
-	case OP_CALLI:
-		for (++*ip; *ip < bodyv->len; ++*ip) {
-			if (body[*ip] == '\0') break;
-		}
-		break;
-	case OP_PUSHI:
-		(*ip) += sizeof(int);
-		break;
-	case OP_PUSHREF:
-		(*ip) += sizeof(size_t);
-		break;
-	case OP_CALLC:
-		(*ip) += sizeof(callable *);
-		break;
-	}
-}
-
 static int op_callc(vecbk *bodyv, size_t *ip) {
 	if (*ip > bodyv->len - (sizeof(callable *) + 1)) {
 		bcabort();
@@ -84,31 +62,6 @@ static int op_calli(cunit *cu, exctx *ctx, vecbk *bodyv, size_t *ip) {
 	return E_UNDEF;
 }
 
-static int op_else(vecbk *bodyv, size_t *ip) {
-	// find the matching THEN
-	const uint8_t *body = *bodyv->itemsp;
-	size_t         depth = 1;
-
-	for (++*ip; *ip < bodyv->len; ++*ip) {
-		switch (body[*ip]) {
-		case OP_IF:
-			depth++;
-			break;
-		case OP_ELSE:
-			if (depth == 1) return E_STRAY_ELSE;
-			break;
-		case OP_THEN:
-			depth--;
-			if (depth == 0) return E_OK;
-			break;
-		default:
-			skipop(bodyv, ip);
-		}
-	}
-
-	return E_NO_THEN;
-}
-
 static int op_fetch(exctx *ctx) {
 	STACK_HAS_1(F_REF);
 
@@ -120,36 +73,29 @@ static int op_fetch(exctx *ctx) {
 	return E_OK;
 }
 
-static int op_if(vecbk *bodyv, size_t *ip) {
-	STACK_HAS_1(F_INT);
-
-	// is the top value nonzero? continue executing normally
-	int n = stack->i;
-	pop();
-	if (n) return E_OK;
-
-	// otherwise, find the matching ELSE or THEN
-	const uint8_t *body = *bodyv->itemsp;
-	size_t         depth = 1;
-
-	for (++*ip; *ip < bodyv->len; ++*ip) {
-		switch (body[*ip]) {
-		case OP_IF:
-			depth++;
-			break;
-		case OP_ELSE:
-			if (depth == 1) return E_OK;
-			break;
-		case OP_THEN:
-			depth--;
-			if (depth == 0) return E_OK;
-			break;
-		default:
-			skipop(bodyv, ip);
-		}
+static int op_jp(vecbk *bodyv, size_t *ip) {
+	if (*ip > bodyv->len - (sizeof(size_t) + 1)) {
+		bcabort();
 	}
 
-	return E_NO_THEN;
+	const uint8_t *body = *bodyv->itemsp;
+
+	*ip = (*(size_t *) &body[*ip + 1]) - 1;
+
+	return E_OK;
+}
+
+static int op_pjnz(vecbk *bodyv, size_t *ip) {
+	STACK_HAS_1(F_INT);
+
+	if (stack->i) {
+		pop();
+		(*ip) += sizeof(size_t);
+		return E_OK;
+	}
+
+	pop();
+	return op_jp(bodyv, ip);
 }
 
 static int op_pushi(vecbk *bodyv, size_t *ip) {
@@ -225,14 +171,14 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 		case OP_CALLI:
 			res = op_calli(cu, ctx, bodyv, &i);
 			break;
-		case OP_ELSE:
-			res = op_else(bodyv, &i);
-			break;
 		case OP_FETCH:
 			res = op_fetch(ctx);
 			break;
-		case OP_IF:
-			res = op_if(bodyv, &i);
+		case OP_JP:
+			res = op_jp(bodyv, &i);
+			break;
+		case OP_PJNZ:
+			res = op_pjnz(bodyv, &i);
 			break;
 		case OP_PUSHI:
 			res = op_pushi(bodyv, &i);
@@ -274,25 +220,19 @@ int run(cunit *cu, exctx *ctx) {
 void prerror(int err) {
 	switch (err) {
 	case E_UNDERFLOW:
-		fprintf(stderr, "Stack underflow\n");
+		fputs("Stack underflow\n", stderr);
 		break;
 	case E_UNDEF:
-		fprintf(stderr, "Unknown word\n");
+		fputs("Unknown word\n", stderr);
 		break;
 	case E_TYPE:
-		fprintf(stderr, "Wrong type(s) on stack\n");
+		fputs("Wrong type(s) on stack\n", stderr);
 		break;
 	case E_DIV0:
-		fprintf(stderr, "Division by zero\n");
+		fputs("Division by zero\n", stderr);
 		break;
 	case E_RANGE:
-		fprintf(stderr, "Integer value out of range\n");
-		break;
-	case E_NO_THEN:
-		fprintf(stderr, "Unterminated IF\n");
-		break;
-	case E_STRAY_ELSE:
-		fprintf(stderr, "ELSE with no IF\n");
+		fputs("Integer value out of range\n", stderr);
 		break;
 	}
 }
