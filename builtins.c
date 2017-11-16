@@ -6,14 +6,18 @@
 #include "exec.h"
 #include "stack.h"
 
+#define STACK_HAS_1_POSITIVE_INT \
+	STACK_HAS_1(F_INT); \
+	if (stack->i < 1) return E_RANGE
+
 int builtin_pop(void) {
-	if (!stack) return E_EMPTY;
+	STACK_HAS_1_ANY;
 	pop();
 	return E_OK;
 }
 
 int builtin_swap(void) {
-	if (!stack || !stack->down) return E_TOOFEW;
+	STACK_HAS_2_ANY;
 
 	frame *f = stack;
 	stack = stack->down;
@@ -24,7 +28,7 @@ int builtin_swap(void) {
 }
 
 int builtin_dup(void) {
-	if (!stack) return E_EMPTY;
+	STACK_HAS_1_ANY;
 
 	switch (stack->tp) {
 	case F_STR:
@@ -47,15 +51,8 @@ int builtin_rot(void) {
 }
 
 int builtin_rotate(void) {
-	if (!stack) {
-		return E_EMPTY;
-	}
-	if (stack->tp != F_INT) {
-		return E_TYPE;
-	}
-	if (stack->i < 1) {
-		return E_RANGE;
-	}
+	STACK_HAS_1_POSITIVE_INT;
+
 	if (stack->i == 1) {
 		pop();
 		return E_OK;
@@ -64,13 +61,9 @@ int builtin_rotate(void) {
 	frame *f = stack;
 	for (int i = 1; i < stack->i; i++) {
 		f = f->down;
-		if (!f) {
-			return E_TOOFEW;
-		}
+		if (!f) return E_UNDERFLOW;
 	}
-	if (!f->down) {
-		return E_TOOFEW;
-	}
+	if (!f->down) return E_UNDERFLOW;
 
 	frame *f2 = f->down;
 	frame *f3 = f2->down;
@@ -88,22 +81,12 @@ int builtin_over(void) {
 }
 
 int builtin_pick(void) {
-	if (!stack) {
-		return E_EMPTY;
-	}
-	if (stack->tp != F_INT) {
-		return E_TYPE;
-	}
-	if (stack->i < 1) {
-		return E_RANGE;
-	}
+	STACK_HAS_1_POSITIVE_INT;
 
 	frame *f = stack;
 	for (int i = 0; i < stack->i; i++) {
 		f = f->down;
-		if (!f) {
-			return E_TOOFEW;
-		}
+		if (!f) return E_UNDERFLOW;
 	}
 	pop();
 
@@ -123,12 +106,7 @@ int builtin_pick(void) {
 }
 
 int builtin_getenv(void) {
-	if (!stack) {
-		return E_EMPTY;
-	}
-	if (stack->tp != F_STR) {
-		return E_TYPE;
-	}
+	STACK_HAS_1(F_STR);
 
 	char *val = getenv(stack->s);
 	pop();
@@ -138,9 +116,8 @@ int builtin_getenv(void) {
 }
 
 int builtin_puts(void) {
-	if (!stack) {
-		return E_EMPTY;
-	}
+	STACK_HAS_1_ANY;
+
 	switch (stack->tp) {
 	case F_STR:
 		printf("%s\n", stack->s);
@@ -152,17 +129,14 @@ int builtin_puts(void) {
 		printf("VAR#%lu\n", stack->ref);
 		break;
 	}
+
 	pop();
+
 	return E_OK;
 }
 
 int builtin_add(void) {
-	if (!stack || !stack->down) {
-		return E_TOOFEW;
-	}
-	if (stack->tp != F_INT || stack->down->tp != F_INT) {
-		return E_TYPE;
-	}
+	STACK_HAS_2(F_INT, F_INT);
 
 	int a = stack->i;
 	int b = stack->down->i;
@@ -174,12 +148,7 @@ int builtin_add(void) {
 }
 
 int builtin_sub(void) {
-	if (!stack || !stack->down) {
-		return E_TOOFEW;
-	}
-	if (stack->tp != F_INT || stack->down->tp != F_INT) {
-		return E_TYPE;
-	}
+	STACK_HAS_2(F_INT, F_INT);
 
 	int a = stack->i;
 	int b = stack->down->i;
@@ -191,12 +160,7 @@ int builtin_sub(void) {
 }
 
 int builtin_mul(void) {
-	if (!stack || !stack->down) {
-		return E_TOOFEW;
-	}
-	if (stack->tp != F_INT || stack->down->tp != F_INT) {
-		return E_TYPE;
-	}
+	STACK_HAS_2(F_INT, F_INT);
 
 	int a = stack->i;
 	int b = stack->down->i;
@@ -208,15 +172,8 @@ int builtin_mul(void) {
 }
 
 int builtin_div(void) {
-	if (!stack || !stack->down) {
-		return E_TOOFEW;
-	}
-	if (stack->tp != F_INT || stack->down->tp != F_INT) {
-		return E_TYPE;
-	}
-	if (stack->i == 0) {
-		return E_DIV0;
-	}
+	STACK_HAS_2(F_INT, F_INT);
+	if (stack->i == 0) return E_DIV0;
 
 	int a = stack->i;
 	int b = stack->down->i;
@@ -228,7 +185,7 @@ int builtin_div(void) {
 }
 
 int builtin_eq(void) {
-	if (!stack || !stack->down) return E_TOOFEW;
+	STACK_HAS_2_ANY;
 
 	if (stack->tp != stack->down->tp) {
 		pop();

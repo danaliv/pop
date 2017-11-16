@@ -56,8 +56,6 @@ frame *copyframe(frame *f1) {
 }
 
 void freeframe(frame *f) {
-	if (f->tp == F_STR) {
-		free(f->s);
-	}
+	if (f->tp == F_STR) free(f->s);
 	free(f);
 }

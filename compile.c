@@ -35,14 +35,10 @@ void freecunit(cunit *cu) {
 }
 
 bool strkeq(const char *k, char *s, size_t slen) {
-	if (slen != strlen(k)) {
-		return false;
-	}
+	if (slen != strlen(k)) return false;
 
 	while (*k) {
-		if (*k != *s) {
-			return false;
-		}
+		if (*k != *s) return false;
 		k++;
 		s++;
 	}
@@ -73,9 +69,7 @@ char *parsestr(char *tk, size_t len) {
 	char * s = xmalloc(len);
 	size_t ti, si;
 	for (ti = 1, si = 0; ti < len; ti++, si++) {
-		if (tk[ti] == '"') {
-			break;
-		}
+		if (tk[ti] == '"') break;
 		if (tk[ti] == '\\') {
 			ti++;
 			if (ti < len && tk[ti] == 'n') {
@@ -99,9 +93,7 @@ bool parseint(char *tk, size_t len, int *n) {
 	case '-':
 		sign = -1;
 	case '+':
-		if (len == 1) {
-			return false;
-		}
+		if (len == 1) return false;
 		i++;
 		break;
 	}
@@ -140,19 +132,19 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 		return addopwopnd(OP_PUSHI, &n, sizeof(n), dstv);
 	}
 
-		// special builtins
-#define SPECIAL_OP(k, op) \
+		// core VM ops
+#define OP(k, op) \
 	if (strkeq(k, tk, len)) { \
 		return addop(op, dstv); \
 	}
 
-	SPECIAL_OP("!", OP_STORE);
-	SPECIAL_OP("@", OP_FETCH);
-	SPECIAL_OP("if", OP_IF);
-	SPECIAL_OP("else", OP_ELSE);
-	SPECIAL_OP("then", OP_THEN);
+	OP("!", OP_STORE);
+	OP("@", OP_FETCH);
+	OP("if", OP_IF);
+	OP("else", OP_ELSE);
+	OP("then", OP_THEN);
 
-	// builtins implemented by C functions
+	// builtins implemented by C functions/callc ops
 #define CALLC_OP(k, f) \
 	if (strkeq(k, tk, len)) { \
 		callable *fp = &f; \
@@ -207,9 +199,7 @@ int addtoken_MAIN(cunit *cu, char *tk, size_t len) {
 		return C_OK;
 	}
 
-	if (strkeq(";", tk, len)) {
-		return C_NOT_IN_DEF;
-	}
+	if (strkeq(";", tk, len)) return C_NOT_IN_DEF;
 
 	if (strkeq(".var", tk, len)) {
 		cu->state = CS_VAR_NAME;
@@ -233,9 +223,7 @@ int addtoken_DEF_NAME(cunit *cu, char *tk, size_t len) {
 }
 
 int addtoken_DEF_BODY(cunit *cu, char *tk, size_t len) {
-	if (strkeq(":", tk, len)) {
-		return C_IN_DEF;
-	}
+	if (strkeq(":", tk, len)) return C_IN_DEF;
 
 	if (strkeq(";", tk, len)) {
 		cu->state = CS_MAIN;
@@ -325,28 +313,18 @@ bool findquote(char **s, size_t *len) {
 int compile(cunit *cu, char *s, size_t len) {
 	while (len) {
 		skipspace(&s, &len, &cu->incomment);
-		if (!len) {
-			break;
-		}
+		if (!len) break;
 
 		char *tk = s;
 		if (*s == '"') {
-			if (!findquote(&s, &len)) {
-				return C_UNTERM_STR;
-				break;
-			}
-			if (len && !isspace(*s)) {
-				return C_STR_SPACE;
-				break;
-			}
+			if (!findquote(&s, &len)) return C_UNTERM_STR;
+			if (len && !isspace(*s)) return C_STR_SPACE;
 		} else {
 			findspace(&s, &len);
 		}
 
 		int res = addtoken(cu, tk, s - tk);
-		if (res != C_OK) {
-			return res;
-		}
+		if (res != C_OK) return res;
 	}
 
 	return C_OK;

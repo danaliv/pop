@@ -4,7 +4,7 @@ class TestOS < Test
         assert_output '"POP_TEST_GETENV" getenv', "góðan daginn\n"
         ENV.delete("POP_TEST_GETENV")
         assert_output '"POP_TEST_GETENV" getenv', "\n"
-        assert_error "getenv", "Stack is empty\n"
+        assert_error "getenv", "Stack underflow\n"
         assert_error "0 getenv", "Wrong type(s) on stack\n"
     end
 
@@ -19,6 +19,6 @@ class TestOS < Test
         assert_equal("", err)
         assert(st.success?, "exit status not successful")
 
-        assert_error "puts", "Stack is empty\n"
+        assert_error "puts", "Stack underflow\n"
     end
 end

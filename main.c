@@ -10,39 +10,26 @@
 #include "stack.h"
 
 void usage() {
-	fprintf(stderr, "Usage:\n");
-	fprintf(stderr, "  pop program-file         runs code in program-file\n");
-	fprintf(stderr, "  pop -e program-code      runs program-code\n");
-	fprintf(stderr, "  pop                      (with piped input) runs program in input\n");
-	fprintf(stderr, "  pop                      (with terminal input) runs REPL\n");
-}
-
-int rerrexit(int res) {
-	switch (res) {
-	case E_NO_VAL:
-		return EX_SOFTWARE;
-	default:
-		return EX_DATAERR;
-	}
+	fputs("Usage:\n", stderr);
+	fputs("  pop program-file         runs code in program-file\n", stderr);
+	fputs("  pop -e program-code      runs program-code\n", stderr);
+	fputs("  pop                      (with piped input) runs program in input\n", stderr);
+	fputs("  pop                      (with terminal input) runs REPL\n", stderr);
 }
 
 void printstack(cunit *cu) {
-	putchar('(');
 	frame *f[4];
 	f[3] = stack;
 	f[2] = f[3] ? f[3]->down : NULL;
 	f[1] = f[2] ? f[2]->down : NULL;
 	f[0] = f[1] ? f[1]->down : NULL;
-	if (stack) {
-		putchar(' ');
-	}
-	if (f[0]) {
-		printf("...");
-	}
+
+	putchar('(');
+	if (stack) putchar(' ');
+	if (f[0]) printf("...");
+
 	for (int i = 1; i < 4; i++) {
-		if (f[i - 1]) {
-			putchar(' ');
-		}
+		if (f[i - 1]) putchar(' ');
 		if (f[i]) {
 			switch (f[i]->tp) {
 			case F_STR:
@@ -57,9 +44,8 @@ void printstack(cunit *cu) {
 			}
 		}
 	}
-	if (stack) {
-		putchar(' ');
-	}
+
+	if (stack) putchar(' ');
 	putchar(')');
 }
 
@@ -84,9 +70,7 @@ int repl() {
 		}
 
 		line = fgetln(stdin, &len);
-		if (!line && feof(stdin)) {
-			break;
-		}
+		if (!line && feof(stdin)) break;
 		if (!line && ferror(stdin)) {
 			perror(NULL);
 			return EX_IOERR;
@@ -97,13 +81,7 @@ int repl() {
 			if (cu->state == CS_MAIN) {
 				res = run(cu, ctx);
 				cu->mainv->len = 0;
-				if (res != E_OK) {
-					prerror(res);
-					res = rerrexit(res);
-					if (res != EX_DATAERR) {
-						return res;
-					}
-				}
+				if (res != E_OK) prerror(res);
 			}
 		} else {
 			pcerror(res);
@@ -123,9 +101,7 @@ int evalfile(FILE *file) {
 		size_t len;
 
 		line = fgetln(file, &len);
-		if (!line && feof(file)) {
-			break;
-		}
+		if (!line && feof(file)) break;
 		if (!line && ferror(file)) {
 			perror(NULL);
 			return EX_IOERR;
@@ -148,14 +124,14 @@ int evalfile(FILE *file) {
 	}
 
 	if (cu->state != CS_MAIN) {
-		fprintf(stderr, "Program ends abruptly\n");
+		fputs("Program ends abruptly\n", stderr);
 		return EX_DATAERR;
 	}
 
 	int res = run(cu, NULL);
 	if (res != E_OK) {
 		prerror(res);
-		return rerrexit(res);
+		return EX_DATAERR;
 	}
 
 	return EX_OK;
@@ -167,13 +143,13 @@ int evalstr(char *str) {
 	int res = compile(cu, str, strlen(str));
 	if (res == C_OK) {
 		if (cu->state != CS_MAIN) {
-			fprintf(stderr, "Program ends abruptly\n");
+			fputs("Program ends abruptly\n", stderr);
 			return EX_DATAERR;
 		}
 		res = run(cu, NULL);
 		if (res != E_OK) {
 			prerror(res);
-			return rerrexit(res);
+			return EX_DATAERR;
 		}
 	} else {
 		pcerror(res);

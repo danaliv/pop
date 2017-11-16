@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 
 #include "exec.h"
 #include "memory.h"
@@ -20,6 +21,11 @@ void freeexctx(exctx *ctx) {
 	}
 	vfree(ctx->varsv);
 	free(ctx);
+}
+
+static void bcabort() {
+	fputs("Malformed bytecode (internal error/bug)\n", stderr);
+	exit(EX_SOFTWARE);
 }
 
 static void skipop(vecbk *bodyv, size_t *ip) {
@@ -46,7 +52,7 @@ static void skipop(vecbk *bodyv, size_t *ip) {
 
 static int op_callc(vecbk *bodyv, size_t *ip) {
 	if (*ip > bodyv->len - (sizeof(callable *) + 1)) {
-		return E_NO_VAL;
+		bcabort();
 	}
 
 	const uint8_t *body = *bodyv->itemsp;
@@ -61,7 +67,7 @@ static int op_callc(vecbk *bodyv, size_t *ip) {
 static int runv(cunit *, vecbk *, exctx *);
 
 static int op_calli(cunit *cu, exctx *ctx, vecbk *bodyv, size_t *ip) {
-	if (*ip > bodyv->len - 2) return E_NO_VAL;
+	if (*ip > bodyv->len - 2) bcabort();
 
 	const uint8_t *body = *bodyv->itemsp;
 
@@ -104,8 +110,7 @@ static int op_else(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_fetch(exctx *ctx) {
-	if (!stack) return E_EMPTY;
-	if (stack->tp != F_REF) return E_TYPE;
+	STACK_HAS_1(F_REF);
 
 	frame *f = copyframe(&ctx->vars[stack->ref]);
 	pop();
@@ -116,8 +121,7 @@ static int op_fetch(exctx *ctx) {
 }
 
 static int op_if(vecbk *bodyv, size_t *ip) {
-	if (!stack) return E_EMPTY;
-	if (stack->tp != F_INT) return E_TYPE;
+	STACK_HAS_1(F_INT);
 
 	// is the top value nonzero? continue executing normally
 	int n = stack->i;
@@ -150,7 +154,7 @@ static int op_if(vecbk *bodyv, size_t *ip) {
 
 static int op_pushi(vecbk *bodyv, size_t *ip) {
 	if (*ip > bodyv->len - (sizeof(int) + 1)) {
-		return E_NO_VAL;
+		bcabort();
 	}
 
 	const uint8_t *body = *bodyv->itemsp;
@@ -163,7 +167,7 @@ static int op_pushi(vecbk *bodyv, size_t *ip) {
 
 static int op_pushref(vecbk *bodyv, size_t *ip) {
 	if (*ip > bodyv->len - (sizeof(size_t) + 1)) {
-		return E_NO_VAL;
+		bcabort();
 	}
 
 	const uint8_t *body = *bodyv->itemsp;
@@ -175,7 +179,7 @@ static int op_pushref(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_pushs(vecbk *bodyv, size_t *ip) {
-	if (*ip > bodyv->len - 2) return E_NO_VAL;
+	if (*ip > bodyv->len - 2) bcabort();
 
 	const uint8_t *body = *bodyv->itemsp;
 
@@ -188,8 +192,8 @@ static int op_pushs(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_store(exctx *ctx) {
-	if (!stack || !stack->down) return E_TOOFEW;
-	if (stack->tp != F_REF) return E_TYPE;
+	STACK_HAS_1(F_REF);
+	if (!stack->down) return E_UNDERFLOW;
 
 	if (ctx->vars[stack->ref].tp == F_STR) {
 		free(ctx->vars[stack->ref].s);
@@ -251,9 +255,7 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 }
 
 int run(cunit *cu, exctx *ctx) {
-	if (!ctx) {
-		ctx = newexctx();
-	}
+	if (!ctx) ctx = newexctx();
 
 	// grow context's variable array if necessary
 	if (ctx->varsv->len < cu->varsv->len) {
@@ -271,17 +273,11 @@ int run(cunit *cu, exctx *ctx) {
 
 void prerror(int err) {
 	switch (err) {
-	case E_EMPTY:
-		fprintf(stderr, "Stack is empty\n");
-		break;
-	case E_NO_VAL:
-		fprintf(stderr, "Malformed bytecode (internal error)\n");
+	case E_UNDERFLOW:
+		fprintf(stderr, "Stack underflow\n");
 		break;
 	case E_UNDEF:
 		fprintf(stderr, "Unknown word\n");
-		break;
-	case E_TOOFEW:
-		fprintf(stderr, "Not enough items on the stack\n");
 		break;
 	case E_TYPE:
 		fprintf(stderr, "Wrong type(s) on stack\n");

@@ -5,30 +5,26 @@
 
 #include "memory.h"
 
+static void oom() {
+	fputs("Out of memory\n", stderr);
+	exit(EX_OSERR);
+}
+
 void *xmalloc(size_t size) {
 	void *ptr = malloc(size);
-	if (!ptr) {
-		fputs("out of memory\n", stderr);
-		exit(EX_OSERR);
-	}
+	if (!ptr) oom();
 	return ptr;
 }
 
 void *xcalloc(size_t count, size_t size) {
 	void *ptr = calloc(count, size);
-	if (!ptr) {
-		fputs("out of memory\n", stderr);
-		exit(EX_OSERR);
-	}
+	if (!ptr) oom();
 	return ptr;
 }
 
 void *xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
-	if (!ptr) {
-		fputs("out of memory\n", stderr);
-		exit(EX_OSERR);
-	}
+	if (!ptr) oom();
 	return ptr;
 }
 
@@ -49,6 +45,7 @@ void vfree(vecbk *v) {
 
 void vaddn(vecbk *v, size_t count) {
 	size_t needcap = v->len + count;
+
 	if (v->capacity < needcap) {
 		while (v->capacity < needcap) {
 			v->capacity *= 2;
