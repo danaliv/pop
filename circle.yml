@@ -1,3 +1,7 @@
+dependencies:
+    override:
+        - apt-get install libbsd-dev
+
 compile:
     override:
         - make
