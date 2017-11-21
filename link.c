@@ -136,7 +136,10 @@ static struct link *linkpop(char *path, struct link *ln) {
 	FILE *file = fopen(path, "r");
 	if (!file) goto lpfail1;
 
-	ln->cu = newcunit(dirname(path));
+	char *pathcopy = xstrdup(path);
+	ln->cu = newcunit(dirname(pathcopy));
+	free(pathcopy);
+
 	ln->ctx = newexctx();
 
 	size_t lineno = 1;

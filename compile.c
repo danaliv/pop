@@ -349,16 +349,20 @@ int addtoken_LINK_TGT(cunit *cu, char *tk, size_t len) {
 
 	char *tgt = parsestr(tk, len);
 
-	char *prefix = basename(tgt);
+	char *tgtcopy = xstrdup(tgt);
+	char *prefix = basename(tgtcopy);
+
 	for (size_t i = 0; i < cu->linksv->len; i++) {
 		if (strcmp(prefix, cu->links[i]->name) == 0) {
 			free(tgt);
+			free(tgtcopy);
 			return C_DUP_PREFIX;
 		}
 	}
 
 	struct link *ln = newlink(tgt, cu->dir, prefix);
 	free(tgt);
+	free(tgtcopy);
 	if (!ln) return C_LINK_FAIL;
 
 	vadd(cu->linksv);
