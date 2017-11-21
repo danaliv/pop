@@ -1,6 +1,7 @@
 dependencies:
     override:
         - sudo apt-get install libbsd-dev
+        - gem install minitest
 
 compile:
     override:
