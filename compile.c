@@ -346,9 +346,18 @@ int addtoken_LINK_TGT(cunit *cu, char *tk, size_t len) {
 
 	if (*tk != '"') return C_TGT_NOT_STR;
 
-	char *       s = parsestr(tk, len);
-	struct link *ln = newlink(s, cu->dir, NULL);
-	free(s);
+	char *tgt = parsestr(tk, len);
+
+	char *prefix = basename(tgt);
+	for (size_t i = 0; i < cu->linksv->len; i++) {
+		if (strcmp(prefix, cu->links[i]->name) == 0) {
+			free(tgt);
+			return C_DUP_PREFIX;
+		}
+	}
+
+	struct link *ln = newlink(tgt, cu->dir, prefix);
+	free(tgt);
 	if (!ln) return C_LINK_FAIL;
 
 	vadd(cu->linksv);
@@ -555,6 +564,9 @@ void pcerror(int err) {
 		break;
 	case C_DUP_NAME:
 		fputs("Duplicate name\n", stderr);
+		break;
+	case C_DUP_PREFIX:
+		fputs("Duplicate prefix\n", stderr);
 		break;
 	}
 }

@@ -14,4 +14,8 @@ class TestLink < Test
         ENV.delete('POPPATH')
         assert_error '.link "lib"', "(stdin):1: Link failed\n"
     end
+
+    def test_errors
+        assert_error '.link "./link/lib" .link "./link/blah/lib"', "(stdin):1: Duplicate prefix\n"
+    end
 end
