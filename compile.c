@@ -1,4 +1,7 @@
 #include <ctype.h>
+#include <errno.h>
+#include <libgen.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,9 +9,10 @@
 #include "builtins.h"
 #include "compile.h"
 #include "exec.h"
+#include "link.h"
 #include "memory.h"
 
-cunit *newcunit() {
+cunit *newcunit(char *dir) {
 	cunit *cu = xmalloc(sizeof(cunit));
 	cu->state = CS_MAIN;
 	cu->incomment = false;
@@ -16,6 +20,8 @@ cunit *newcunit() {
 	cu->varsv = newvec(4, sizeof(char *), (void **) &cu->vars);
 	cu->defsv = newvec(4, sizeof(struct cunitdef), (void **) &cu->defs);
 	cu->ifsv = newvec(4, sizeof(struct cunitif), (void **) &cu->ifs);
+	cu->dir = xstrdup(realpath(dir, NULL));
+	cu->linksv = newvec(4, sizeof(struct link), (void **) &cu->links);
 	return cu;
 }
 
@@ -32,8 +38,14 @@ void freecunit(cunit *cu) {
 	}
 	vfree(cu->defsv);
 
+	for (i = 0; i < cu->linksv->len; i++) {
+		freelink(cu->links[i]);
+	}
+	vfree(cu->linksv);
+
 	vfree(cu->mainv);
 	vfree(cu->ifsv);
+	free(cu->dir);
 
 	free(cu);
 }
@@ -216,9 +228,9 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->defsv->len; i++) {
-		char *name = cu->defs[i].name;
-		if (strkeq(name, tk, len)) {
-			return addopwopnd(OP_CALLI, name, strlen(name) + 1, dstv);
+		struct cunitdef *def = cu->defs + i;
+		if (strkeq(def->name, tk, len)) {
+			return addopwopnd(OP_CALLI, &def->bodyv, sizeof(vecbk *), dstv);
 		}
 	}
 
@@ -227,6 +239,21 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 		if (strkeq(cu->vars[i], tk, len)) {
 			return addopwopnd(OP_PUSHREF, &i, sizeof(i), dstv);
 		}
+	}
+
+	// calls to words in linked units
+	char *prefix, *name;
+	if (linkinv(tk, len, &prefix, &name)) {
+		for (size_t i = 0; i < cu->linksv->len; i++) {
+			if (strcmp(prefix, cu->links[i]->name) == 0) {
+				int res = addlinkcall(cu->links[i], dstv, name);
+				free(prefix);
+				free(name);
+				return res;
+			}
+		}
+		free(prefix);
+		free(name);
 	}
 
 	return C_UNK;
@@ -247,6 +274,11 @@ int addtoken_MAIN(cunit *cu, char *tk, size_t len) {
 
 	if (strkeq(".var", tk, len)) {
 		cu->state = CS_VAR_NAME;
+		return C_OK;
+	}
+
+	if (strkeq(".link", tk, len)) {
+		cu->state = CS_LINK_TGT;
 		return C_OK;
 	}
 
@@ -291,6 +323,22 @@ int addtoken_VAR_NAME(cunit *cu, char *tk, size_t len) {
 	return C_OK;
 }
 
+int addtoken_LINK_TGT(cunit *cu, char *tk, size_t len) {
+	cu->state = CS_MAIN;
+
+	if (*tk != '"') return C_TGT_NOT_STR;
+
+	char *       s = parsestr(tk, len);
+	struct link *ln = newlink(s, cu->dir, NULL);
+	free(s);
+	if (!ln) return C_LINK_FAIL;
+
+	vadd(cu->linksv);
+	cu->links[cu->linksv->len - 1] = ln;
+
+	return C_OK;
+}
+
 int addtoken(cunit *cu, char *tk, size_t len) {
 	switch (cu->state) {
 	case CS_MAIN:
@@ -301,6 +349,8 @@ int addtoken(cunit *cu, char *tk, size_t len) {
 		return addtoken_DEF_BODY(cu, tk, len);
 	case CS_VAR_NAME:
 		return addtoken_VAR_NAME(cu, tk, len);
+	case CS_LINK_TGT:
+		return addtoken_LINK_TGT(cu, tk, len);
 	}
 }
 
@@ -383,6 +433,8 @@ int closecunit(cunit *cu) {
 		return C_UNTERM_DEF;
 	case CS_VAR_NAME:
 		return C_UNTERM_VAR;
+	case CS_LINK_TGT:
+		return C_UNTERM_LINK;
 	default:
 		if (cu->ifsv->len) return C_UNTERM_IF;
 	}
@@ -392,6 +444,50 @@ int closecunit(cunit *cu) {
 
 bool isrunnable(cunit *cu) {
 	return cu->state == CS_MAIN && !cu->incomment && !cu->ifsv->len;
+}
+
+cunit *compilefile(FILE *file, char *name, char *dir) {
+	cunit *cu = newcunit(dir);
+	size_t lineno = 1;
+
+	while (true) {
+		char * line;
+		size_t len;
+
+		line = fgetln(file, &len);
+		if (!line && feof(file)) break;
+		if (!line && ferror(file)) {
+			perror(name);
+			freecunit(cu);
+			return NULL;
+		}
+
+		// ignore hashbang
+		if (lineno == 1 && len > 1 && line[0] == '#' && line[1] == '!') {
+			lineno++;
+			continue;
+		}
+
+		int res = compile(cu, line, len);
+		if (res != C_OK) {
+			fprintf(stderr, "%s:%lu: ", name, lineno);
+			pcerror(res);
+			freecunit(cu);
+			return NULL;
+		}
+
+		lineno++;
+	}
+
+	int res = closecunit(cu);
+	if (res != C_OK) {
+		fprintf(stderr, "%s:%lu: ", name, lineno - 1);
+		pcerror(res);
+		freecunit(cu);
+		return NULL;
+	}
+
+	return cu;
 }
 
 void pcerror(int err) {
@@ -428,6 +524,15 @@ void pcerror(int err) {
 		break;
 	case C_UNTERM_VAR:
 		fputs(".var with no name\n", stderr);
+		break;
+	case C_UNTERM_LINK:
+		fputs(".link with no target\n", stderr);
+		break;
+	case C_TGT_NOT_STR:
+		fputs(".link must be followed by a string\n", stderr);
+		break;
+	case C_LINK_FAIL:
+		fputs("Link failed\n", stderr);
 		break;
 	}
 }

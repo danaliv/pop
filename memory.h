@@ -4,6 +4,7 @@
 void *xmalloc(size_t);
 void *xcalloc(size_t, size_t);
 void *xrealloc(void *, size_t);
+char *xstrdup(char *);
 
 typedef struct {
 	size_t len, capacity, itemsize;

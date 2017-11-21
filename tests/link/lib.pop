@@ -1,0 +1,9 @@
+: sayhi
+    "hi" .
+;
+
+: saybye
+    "bye" .
+;
+
+"loaded!"

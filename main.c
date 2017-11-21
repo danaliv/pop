@@ -50,7 +50,7 @@ void printstack(cunit *cu) {
 }
 
 int repl() {
-	cunit *cu = newcunit();
+	cunit *cu = newcunit(".");
 	exctx *ctx = newexctx();
 
 	while (1) {
@@ -98,45 +98,11 @@ int repl() {
 	return EX_OK;
 }
 
-int evalfile(FILE *file) {
-	cunit *cu = newcunit();
-	size_t lineno = 1;
+int evalfile(FILE *file, char *name, char *dir) {
+	cunit *cu = compilefile(file, name, dir);
+	if (!cu) return EX_DATAERR;
 
-	while (1) {
-		char * line;
-		size_t len;
-
-		line = fgetln(file, &len);
-		if (!line && feof(file)) break;
-		if (!line && ferror(file)) {
-			perror(NULL);
-			return EX_IOERR;
-		}
-
-		// ignore hashbang
-		if (lineno == 1 && len > 1 && line[0] == '#' && line[1] == '!') {
-			lineno++;
-			continue;
-		}
-
-		int res = compile(cu, line, len);
-		if (res != C_OK) {
-			fprintf(stderr, "line %lu: ", lineno);
-			pcerror(res);
-			return EX_DATAERR;
-		}
-
-		lineno++;
-	}
-
-	int res = closecunit(cu);
-	if (res != C_OK) {
-		fprintf(stderr, "line %lu: ", lineno - 1);
-		pcerror(res);
-		return EX_DATAERR;
-	}
-
-	res = run(cu, NULL);
+	int res = run(cu, NULL);
 	if (res != E_OK) {
 		prerror(res);
 		return EX_DATAERR;
@@ -146,7 +112,7 @@ int evalfile(FILE *file) {
 }
 
 int evalstr(char *str) {
-	cunit *cu = newcunit();
+	cunit *cu = newcunit(".");
 
 	int res = compile(cu, str, strlen(str));
 	if (res == C_OK) res = closecunit(cu);
@@ -170,7 +136,7 @@ int main(int argc, char *argv[]) {
 		if (isatty(fileno(stdin))) {
 			return repl();
 		}
-		return evalfile(stdin);
+		return evalfile(stdin, "(stdin)", ".");
 	}
 
 	// file input
@@ -180,7 +146,7 @@ int main(int argc, char *argv[]) {
 			perror(argv[1]);
 			return EX_NOINPUT;
 		}
-		return evalfile(file);
+		return evalfile(file, argv[1], argv[1]);
 	}
 
 	// one-liner with -e option

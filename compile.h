@@ -4,15 +4,17 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "memory.h"
 
-typedef struct {
+typedef struct cunit {
 	enum {
 		CS_MAIN,
 		CS_DEF_NAME,
 		CS_DEF_BODY,
 		CS_VAR_NAME,
+		CS_LINK_TGT,
 	} state;
 	bool incomment;
 
@@ -34,6 +36,10 @@ typedef struct {
 		size_t ifi, elsei;
 		bool   haselse;
 	} * ifs;
+
+	char *        dir;
+	vecbk *       linksv;
+	struct link **links;
 } cunit;
 
 enum {
@@ -49,14 +55,19 @@ enum {
 	C_UNTERM_IF,
 	C_UNTERM_COMMENT,
 	C_UNTERM_VAR,
+	C_UNTERM_LINK,
+	C_TGT_NOT_STR,
+	C_LINK_FAIL,
 };
 
-cunit *newcunit();
+cunit *newcunit(char *dir);
 void   freecunit(cunit *);
 
 int  compile(cunit *, char *s, size_t len);
 int  closecunit(cunit *);
 bool isrunnable(cunit *);
+
+cunit *compilefile(FILE *, char *name, char *dir);
 
 void pcerror(int);
 

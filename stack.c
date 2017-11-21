@@ -12,8 +12,7 @@ frame *stack = NULL;
 frame *pushs(char *s) {
 	frame *f = xcalloc(1, sizeof(frame));
 	f->tp = F_STR;
-	f->s = xmalloc(strlen(s) + 1);
-	strcpy(f->s, s);
+	f->s = xstrdup(s);
 	f->down = stack;
 	stack = f;
 	return f;
@@ -49,8 +48,7 @@ frame *copyframe(frame *f1) {
 	frame *f2 = xmalloc(sizeof(frame));
 	memcpy(f2, f1, sizeof(frame));
 	if (f1->tp == F_STR) {
-		f2->s = xmalloc(strlen(f1->s) + 1);
-		strcpy(f2->s, f1->s);
+		f2->s = xstrdup(f1->s);
 	}
 	return f2;
 }

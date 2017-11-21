@@ -14,6 +14,7 @@ enum {
 	OP_PUSHI,
 	OP_PUSHREF,
 	OP_CALLI,
+	OP_CALLIX,
 	OP_CALLC,
 	OP_STORE,
 	OP_FETCH,
@@ -24,7 +25,6 @@ enum {
 enum {
 	E_OK = 0,
 	E_UNDERFLOW,
-	E_UNDEF,
 	E_TYPE,
 	E_DIV0,
 	E_RANGE,

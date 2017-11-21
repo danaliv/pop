@@ -28,6 +28,12 @@ void *xrealloc(void *ptr, size_t size) {
 	return ptr;
 }
 
+char *xstrdup(char *s) {
+	char *s2 = strdup(s);
+	if (!s2) oom();
+	return s2;
+}
+
 vecbk *newvec(size_t capacity, size_t itemsize, void **itemsp) {
 	vecbk *v = xmalloc(sizeof(vecbk));
 	v->len = 0;

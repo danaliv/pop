@@ -49,17 +49,25 @@ static int op_calli(cunit *cu, exctx *ctx, vecbk *bodyv, size_t *ip) {
 
 	const uint8_t *body = *bodyv->itemsp;
 
-	for (size_t j = 0; j < cu->defsv->len; j++) {
-		if (strcmp(cu->defs[j].name, (const char *) &body[*ip + 1]) == 0) {
-			int res = runv(cu, cu->defs[j].bodyv, ctx);
-			if (res == E_OK) {
-				while (body[*ip]) ++*ip;
-			}
-			return res;
-		}
-	}
+	vecbk *defbodyv = *(vecbk **) &body[*ip + 1];
+	int    res = runv(cu, defbodyv, ctx);
+	(*ip) += sizeof(vecbk *);
 
-	return E_UNDEF;
+	return res;
+}
+
+static int op_callix(cunit *cu, vecbk *bodyv, size_t *ip) {
+	if (*ip > bodyv->len - 2) bcabort();
+
+	const uint8_t *body = *bodyv->itemsp;
+
+	vecbk *defbodyv = *(vecbk **) &body[*ip + 1];
+	exctx *ctx = *(exctx **) &body[*ip + 1 + sizeof(vecbk *)];
+	int    res = runv(cu, defbodyv, ctx);
+	(*ip) += sizeof(vecbk *);
+	(*ip) += sizeof(exctx *);
+
+	return res;
 }
 
 static int op_fetch(exctx *ctx) {
@@ -147,8 +155,7 @@ static int op_store(exctx *ctx) {
 
 	ctx->vars[stack->ref] = *stack->down;
 	if (stack->down->tp == F_STR) {
-		ctx->vars[stack->ref].s = xmalloc(strlen(stack->down->s) + 1);
-		strcpy(ctx->vars[stack->ref].s, stack->down->s);
+		ctx->vars[stack->ref].s = xstrdup(stack->down->s);
 	}
 
 	pop();
@@ -170,6 +177,9 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 			break;
 		case OP_CALLI:
 			res = op_calli(cu, ctx, bodyv, &i);
+			break;
+		case OP_CALLIX:
+			res = op_callix(cu, bodyv, &i);
 			break;
 		case OP_FETCH:
 			res = op_fetch(ctx);
@@ -221,9 +231,6 @@ void prerror(int err) {
 	switch (err) {
 	case E_UNDERFLOW:
 		fputs("Stack underflow\n", stderr);
-		break;
-	case E_UNDEF:
-		fputs("Unknown word\n", stderr);
 		break;
 	case E_TYPE:
 		fputs("Wrong type(s) on stack\n", stderr);

@@ -1,4 +1,6 @@
 .DS_Store
 *.d
+*.dylib
+*.log
 *.o
 pop
