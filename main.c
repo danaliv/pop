@@ -5,9 +5,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "fgetln.h"
 #include "compile.h"
 #include "exec.h"
+#include "fgetln.h"
 #include "stack.h"
 
 void usage() {

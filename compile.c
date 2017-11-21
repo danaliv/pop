@@ -6,10 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fgetln.h"
 #include "builtins.h"
 #include "compile.h"
 #include "exec.h"
+#include "fgetln.h"
 #include "link.h"
 #include "memory.h"
 
