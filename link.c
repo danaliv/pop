@@ -219,7 +219,7 @@ struct link *newlink(char *tgt, char *rel, char *prefix) {
 	}
 
 	if (ln) {
-		lc = xmalloc(sizeof(cache));
+		lc = xmalloc(sizeof(lncache));
 		lc->path = ln->path = path;
 		lc->refs = 1;
 		lc->cu = ln->cu;

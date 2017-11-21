@@ -36,6 +36,7 @@ void freecunit(cunit *cu) {
 	vfree(cu->varsv);
 
 	for (i = 0; i < cu->defsv->len; i++) {
+		free(cu->defs[i].name);
 		vfree(cu->defs[i].bodyv);
 	}
 	vfree(cu->defsv);
