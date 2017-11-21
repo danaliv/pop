@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 
 #include "builtins.h"
 #include "compile.h"
@@ -286,8 +287,23 @@ int addtoken_MAIN(cunit *cu, char *tk, size_t len) {
 	return addinstr(cu, tk, len, cu->mainv);
 }
 
+static bool isdupname(cunit *cu, char *tk, size_t len) {
+	for (size_t i = 0; i < cu->defsv->len; i++) {
+		if (!cu->defs[i].name) continue;
+		if (strkeq(cu->defs[i].name, tk, len)) return true;
+	}
+	for (size_t i = 0; i < cu->varsv->len; i++) {
+		if (!cu->vars[i]) continue;
+		if (strkeq(cu->vars[i], tk, len)) return true;
+	}
+	return false;
+}
+
 int addtoken_DEF_NAME(cunit *cu, char *tk, size_t len) {
-	// TODO: verify name legality
+	if (isdupname(cu, tk, len)) {
+		cu->state = CS_MAIN;
+		return C_DUP_NAME;
+	}
 
 	char *name = xmalloc(len + 1);
 	memcpy(name, tk, len);
@@ -311,7 +327,9 @@ int addtoken_DEF_BODY(cunit *cu, char *tk, size_t len) {
 }
 
 int addtoken_VAR_NAME(cunit *cu, char *tk, size_t len) {
-	// TODO: verify name legality
+	cu->state = CS_MAIN;
+
+	if (isdupname(cu, tk, len)) return C_DUP_NAME;
 
 	char *name = xmalloc(len + 1);
 	memcpy(name, tk, len);
@@ -320,7 +338,6 @@ int addtoken_VAR_NAME(cunit *cu, char *tk, size_t len) {
 	vadd(cu->varsv);
 	cu->vars[cu->varsv->len - 1] = name;
 
-	cu->state = CS_MAIN;
 	return C_OK;
 }
 
@@ -353,6 +370,7 @@ int addtoken(cunit *cu, char *tk, size_t len) {
 	case CS_LINK_TGT:
 		return addtoken_LINK_TGT(cu, tk, len);
 	}
+	exit(EX_SOFTWARE);
 }
 
 void skipspace(char **s, size_t *len, bool *incomment) {
@@ -534,6 +552,9 @@ void pcerror(int err) {
 		break;
 	case C_LINK_FAIL:
 		fputs("Link failed\n", stderr);
+		break;
+	case C_DUP_NAME:
+		fputs("Duplicate name\n", stderr);
 		break;
 	}
 }

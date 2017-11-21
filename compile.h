@@ -58,6 +58,7 @@ enum {
 	C_UNTERM_LINK,
 	C_TGT_NOT_STR,
 	C_LINK_FAIL,
+	C_DUP_NAME,
 };
 
 cunit *newcunit(char *dir);

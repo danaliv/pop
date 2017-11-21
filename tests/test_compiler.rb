@@ -6,6 +6,8 @@ class TestCompiler < Test
         assert_error ': hello "hello world" .', "(stdin):1: Unterminated word definition\n"
         assert_error ": hello :", "(stdin):1: Can't use : inside a word definition\n"
         assert_error ";", "(stdin):1: Can't use ; outside a word definition\n"
+        assert_error ": x ; : x ;", "(stdin):1: Duplicate name\n"
+        assert_error ".var x : x ;", "(stdin):1: Duplicate name\n"
     end
 
     def test_string
