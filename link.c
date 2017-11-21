@@ -15,6 +15,20 @@
 #define SOEXT ".so"
 #endif
 
+typedef struct lncache {
+	char * path;
+	size_t refs;
+
+	struct cunit *cu;
+	exctx *       ctx;
+
+	void *dl;
+
+	struct lncache *next;
+} lncache;
+
+static lncache *cache = NULL;
+
 static char **parsedirs(char *s, size_t *np) {
 	if (!s || *s == '\0') return NULL;
 
@@ -185,20 +199,71 @@ struct link *newlink(char *tgt, char *rel, char *prefix) {
 	if (!prefix) prefix = basename(tgt);
 	ln->name = xstrdup(prefix);
 
-	if (strcmp(path + strlen(path) - 4, ".pop") == 0) {
-		return linkpop(path, ln);
+	lncache *lc = cache;
+	while (lc) {
+		if (strcmp(lc->path, path) == 0) {
+			ln->path = lc->path;
+			ln->cu = lc->cu;
+			ln->ctx = lc->ctx;
+			ln->dl = lc->dl;
+			lc->refs++;
+			return ln;
+		}
+		lc = lc->next;
 	}
-	return linkso(path, ln);
+
+	if (strcmp(path + strlen(path) - 4, ".pop") == 0) {
+		ln = linkpop(path, ln);
+	} else {
+		ln = linkso(path, ln);
+	}
+
+	if (ln) {
+		lc = xmalloc(sizeof(cache));
+		lc->path = ln->path = path;
+		lc->refs = 1;
+		lc->cu = ln->cu;
+		lc->ctx = ln->ctx;
+		lc->dl = ln->dl;
+		lc->next = cache;
+		cache = lc;
+	}
+
+	return ln;
 }
 
 void freelink(struct link *ln) {
+	char *lnpath = ln->path;
+
 	free(ln->name);
-	if (ln->cu) {
-		freecunit(ln->cu);
-		freeexctx(ln->ctx);
-	}
-	if (ln->dl) dlclose(ln->dl);
 	free(ln);
+
+	lncache *lc = cache;
+	lncache *prev = NULL;
+	while (lc) {
+		if (lnpath == lc->path) { // pointer equality!
+			lc->refs--;
+			if (lc->refs != 0) return;
+			break;
+		}
+		prev = lc;
+		lc = lc->next;
+	}
+
+	free(lc->path);
+	if (lc->cu) {
+		freecunit(lc->cu);
+		freeexctx(lc->ctx);
+	}
+	if (lc->dl) dlclose(lc->dl);
+
+	if (prev) {
+		prev->next = lc->next;
+	} else {
+		cache = lc->next;
+	}
+
+	free(lc);
 }
 
 bool linkinv(char *s, size_t len, char **prefixp, char **namep) {
@@ -212,7 +277,7 @@ bool linkinv(char *s, size_t len, char **prefixp, char **namep) {
 
 			*namep = xmalloc(len - i);
 			memcpy(*namep, s + i + 1, len - i - 1);
-			(*namep)[len - i] = '\0';
+			(*namep)[len - i - 1] = '\0';
 
 			return true;
 		}
