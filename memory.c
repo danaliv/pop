@@ -10,25 +10,25 @@ static void oom() {
 	exit(EX_OSERR);
 }
 
-void *xmalloc(size_t size) {
+void *_xmalloc(size_t size) {
 	void *ptr = malloc(size);
 	if (!ptr) oom();
 	return ptr;
 }
 
-void *xcalloc(size_t count, size_t size) {
+void *_xcalloc(size_t count, size_t size) {
 	void *ptr = calloc(count, size);
 	if (!ptr) oom();
 	return ptr;
 }
 
-void *xrealloc(void *ptr, size_t size) {
+void *_xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 	if (!ptr) oom();
 	return ptr;
 }
 
-char *xstrdup(char *s) {
+char *_xstrdup(char *s) {
 	char *s2 = strdup(s);
 	if (!s2) oom();
 	return s2;

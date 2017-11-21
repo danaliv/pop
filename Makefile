@@ -1,6 +1,4 @@
-CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic
-LDFLAGS =
-LIBS =
+CFLAGS += -std=c99 -g -Wall -Wextra -Wpedantic
 CLANG_FORMAT ?= clang-format
 
 OS = $(shell uname -s)

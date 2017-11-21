@@ -5,6 +5,10 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#ifdef MTRACE
+#include <mcheck.h>
+#endif
+
 #include "compile.h"
 #include "exec.h"
 #include "fgetln.h"
@@ -132,6 +136,10 @@ int evalstr(char *str) {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef MTRACE
+	mtrace();
+#endif
+
 	// REPL or piped input
 	if (argc == 1) {
 		if (isatty(fileno(stdin))) {

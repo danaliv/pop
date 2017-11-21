@@ -1,5 +1,5 @@
-CFLAGS = -std=c99 -I../../include
-LDFLAGS = -shared
+CFLAGS += -std=c99 -I../../include
+LDFLAGS += -shared
 
 OS = $(shell uname -s)
 
