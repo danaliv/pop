@@ -3,4 +3,5 @@
 *.dylib
 *.log
 *.o
+*.so
 /pop

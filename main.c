@@ -5,6 +5,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "fgetln.h"
 #include "compile.h"
 #include "exec.h"
 #include "stack.h"

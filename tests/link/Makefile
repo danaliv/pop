@@ -1,9 +1,13 @@
-CFLAGS += -I../../include
-LDFLAGS += -shared -undefined dynamic_lookup
+CFLAGS = -std=c99 -I../../include
+LDFLAGS = -shared
+
+OS = $(shell uname -s)
 
 ifeq ($(shell uname -s), Darwin)
+	LDFLAGS += -undefined dynamic_lookup
 	TARGET = ext.dylib
 else
+	CFLAGS += -fPIC
 	TARGET = ext.so
 endif
 

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fgetln.h"
 #include "builtins.h"
 #include "compile.h"
 #include "exec.h"

@@ -1,5 +1,13 @@
-CFLAGS = -g -Wall -Wextra -Wpedantic
+CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic
+LDFLAGS =
 CLANG_FORMAT ?= clang-format
+
+OS = $(shell uname -s)
+
+ifeq ($(OS), Linux)
+	CFLAGS += -fPIC -D_XOPEN_SOURCE=700
+	LDFLAGS += -rdynamic -ldl -lbsd
+endif
 
 .PHONY: clean format test
 

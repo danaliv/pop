@@ -1,4 +1,5 @@
 require 'open3'
+require 'rubygems'
 require 'minitest/autorun'
 
 Dir.chdir(File.dirname(__FILE__))

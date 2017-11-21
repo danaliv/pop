@@ -1,7 +1,6 @@
 class TestLink < Test
     def test_link_pop
         assert_output '.link "./link/lib" lib.sayhi', "hi\nloaded!\n"
-        assert_output '.link "./link/lib" .link "./link/doublelink"', "loaded!\n"
     end
 
     def test_link_so
