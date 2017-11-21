@@ -132,6 +132,8 @@ int evalstr(char *str) {
 		return EX_DATAERR;
 	}
 
+	popall();
+	freecunit(cu);
 	return EX_OK;
 }
 

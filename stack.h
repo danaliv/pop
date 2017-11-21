@@ -40,4 +40,6 @@ void   pop();
 frame *copyframe(frame *);
 void   freeframe(frame *);
 
+void popall();
+
 #endif

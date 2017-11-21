@@ -211,7 +211,8 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 }
 
 int run(cunit *cu, exctx *ctx) {
-	if (!ctx) ctx = newexctx();
+	bool ctxistmp = !ctx;
+	if (ctxistmp) ctx = newexctx();
 
 	// grow context's variable array if necessary
 	if (ctx->varsv->len < cu->varsv->len) {
@@ -224,7 +225,9 @@ int run(cunit *cu, exctx *ctx) {
 	}
 
 	// run main
-	return runv(cu, cu->mainv, ctx);
+	int res = runv(cu, cu->mainv, ctx);
+	if (ctxistmp) freeexctx(ctx);
+	return res;
 }
 
 void prerror(int err) {
