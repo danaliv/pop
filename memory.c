@@ -49,7 +49,7 @@ void vfree(vecbk *v) {
 	free(v);
 }
 
-void vaddn(vecbk *v, size_t count) {
+void *vaddn(vecbk *v, size_t count) {
 	size_t needcap = v->len + count;
 
 	if (v->capacity < needcap) {
@@ -60,4 +60,6 @@ void vaddn(vecbk *v, size_t count) {
 	}
 
 	v->len += count;
+
+	return *v->itemsp;
 }

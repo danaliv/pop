@@ -290,18 +290,18 @@ bool linkinv(char *s, size_t len, char **prefixp, char **namep) {
 }
 
 int addlinkcall(struct link *ln, vecbk *dstv, char *name) {
-	uint8_t *dst = *dstv->itemsp;
+	uint8_t *dst;
 
 	if (ln->cu) {
 		for (size_t i = 0; i < ln->cu->defsv->len; i++) {
 			if (strcmp(name, ln->cu->defs[i].name) == 0) {
-				vadd(dstv);
+				dst = vadd(dstv);
 				dst[dstv->len - 1] = OP_CALLIX;
 
-				vaddn(dstv, sizeof(vecbk *));
+				dst = vaddn(dstv, sizeof(vecbk *));
 				*(vecbk **) &dst[dstv->len - sizeof(vecbk *)] = ln->cu->defs[i].bodyv;
 
-				vaddn(dstv, sizeof(exctx *));
+				dst = vaddn(dstv, sizeof(exctx *));
 				*(exctx **) &dst[dstv->len - sizeof(exctx *)] = ln->ctx;
 
 				return C_OK;
@@ -315,10 +315,10 @@ int addlinkcall(struct link *ln, vecbk *dstv, char *name) {
 	free(sym);
 	if (!fn) return C_UNK;
 
-	vadd(dstv);
+	dst = vadd(dstv);
 	dst[dstv->len - 1] = OP_CALLC;
 
-	vaddn(dstv, sizeof(callable *));
+	dst = vaddn(dstv, sizeof(callable *));
 	*(callable **) &dst[dstv->len - sizeof(callable *)] = fn;
 
 	return C_OK;

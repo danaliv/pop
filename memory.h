@@ -27,6 +27,6 @@ vecbk *newvec(size_t capacity, size_t itemsize, void **itemsp);
 void   vfree(vecbk *);
 
 #define vadd(v) vaddn(v, 1)
-void vaddn(vecbk *, size_t);
+void *vaddn(vecbk *, size_t);
 
 #endif

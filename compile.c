@@ -66,9 +66,7 @@ bool strkeq(const char *k, char *s, size_t slen) {
 }
 
 int addopwopnd(uint8_t op, void *opnd, size_t opndlen, vecbk *dstv) {
-	uint8_t *dst = *dstv->itemsp;
-
-	vaddn(dstv, 1 + opndlen);
+	uint8_t *dst = vaddn(dstv, 1 + opndlen);
 	dst[dstv->len - (1 + opndlen)] = op;
 	memcpy(dst + dstv->len - opndlen, opnd, opndlen);
 
@@ -76,9 +74,7 @@ int addopwopnd(uint8_t op, void *opnd, size_t opndlen, vecbk *dstv) {
 }
 
 int addop(uint8_t op, vecbk *dstv) {
-	uint8_t *dst = *dstv->itemsp;
-
-	vadd(dstv);
+	uint8_t *dst = vadd(dstv);
 	dst[dstv->len - 1] = op;
 
 	return C_OK;
