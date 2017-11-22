@@ -37,8 +37,13 @@ typedef struct cunit {
 		bool   haselse;
 	} * ifs;
 
-	vecbk * loopsv;
-	size_t *loops;
+	vecbk *loopsv;
+	struct cunitloop {
+		size_t  begin, _while;
+		bool    haswhile;
+		vecbk * breaksv;
+		size_t *breaks;
+	} * loops;
 
 	char *        dir;
 	vecbk *       linksv;
@@ -63,7 +68,11 @@ enum {
 	C_LINK_FAIL,
 	C_DUP_NAME,
 	C_DUP_PREFIX,
+	C_STRAY_REPEAT,
+	C_STRAY_BREAK,
 	C_STRAY_WHILE,
+	C_DUP_WHILE,
+	C_UNTERM_REPEAT,
 };
 
 cunit *newcunit(char *dir);

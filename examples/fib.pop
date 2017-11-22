@@ -1,4 +1,6 @@
-: fib
+( Prints the first ten Fibonacci numbers. )
+
+: fib ( n -- fn )
     dup 0 = if
     else
         dup 1 = if
@@ -10,9 +12,9 @@
     then
 ;
 
-
-0 repeat
+0 begin
+    dup 10 =
+until
     1 +
     dup fib .
-    dup 10 <
-while
+repeat

@@ -20,7 +20,6 @@ enum {
 	OP_FETCH,
 	OP_JP,
 	OP_PJZ,
-	OP_PJNZ,
 };
 
 enum {

@@ -225,6 +225,27 @@ int builtin_lt(void) {
 	return E_OK;
 }
 
+int builtin_gt(void) {
+	STACK_HAS_2(F_INT, F_INT);
+
+	int gt = stack->down->i > stack->i;
+	pop();
+	pop();
+	pushi(gt);
+
+	return E_OK;
+}
+
+int builtin_not(void) {
+	STACK_HAS_1(F_INT);
+
+	int n = stack->i;
+	pop();
+	pushi(n ? 0 : -1);
+
+	return E_OK;
+}
+
 int builtin_strlen(void) {
 	STACK_HAS_1(F_STR);
 

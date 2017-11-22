@@ -67,7 +67,7 @@ To get out of the REPL, send an EOF (control-D).
 
 ## Builtin Words
 
-See [docs/builtins.md] for a list of builtin words.
+See (docs/builtins.md)[docs/builtins.md] for a list of builtin words.
 
 ## Inspiration
 

@@ -25,7 +25,7 @@ cunit *newcunit(char *dir) {
 	cu->varsv = newvec(4, sizeof(char *), (void **) &cu->vars);
 	cu->defsv = newvec(4, sizeof(struct cunitdef), (void **) &cu->defs);
 	cu->ifsv = newvec(4, sizeof(struct cunitif), (void **) &cu->ifs);
-	cu->loopsv = newvec(4, sizeof(size_t), (void **) &cu->loops);
+	cu->loopsv = newvec(4, sizeof(struct cunitloop), (void **) &cu->loops);
 	cu->dir = xstrdup(realpath(dir, NULL));
 	cu->linksv = newvec(4, sizeof(struct link), (void **) &cu->links);
 	return cu;
@@ -180,16 +180,54 @@ static int addthen(cunit *cu, vecbk *dstv) {
 	return C_OK;
 }
 
-static int addrepeat(cunit *cu, vecbk *dstv) {
+static int addbegin(cunit *cu, vecbk *dstv) {
 	vadd(cu->loopsv);
-	cu->loops[cu->loopsv->len - 1] = dstv->len;
+	struct cunitloop *loop = cu->loops + cu->loopsv->len - 1;
+
+	loop->begin = dstv->len;
+	loop->haswhile = false;
+	loop->breaksv = newvec(4, sizeof(size_t), (void **) &loop->breaks);
+
 	return C_OK;
 }
 
 static int addwhile(cunit *cu, vecbk *dstv) {
 	if (cu->loopsv->len == 0) return C_STRAY_WHILE;
+	struct cunitloop *loop = cu->loops + cu->loopsv->len - 1;
+	if (loop->haswhile) return C_DUP_WHILE;
+
+	loop->_while = dstv->len;
+	loop->haswhile = true;
+
+	return addopwopnd(OP_PJZ, &tmpaddr, sizeof(size_t), dstv);
+}
+
+static int addbreak(cunit *cu, vecbk *dstv) {
+	if (cu->loopsv->len == 0) return C_STRAY_BREAK;
+	struct cunitloop *loop = cu->loops + cu->loopsv->len - 1;
+
+	vadd(loop->breaksv);
+	loop->breaks[loop->breaksv->len - 1] = dstv->len;
+
+	return addopwopnd(OP_JP, &tmpaddr, sizeof(size_t), dstv);
+}
+
+static int addrepeat(cunit *cu, vecbk *dstv) {
+	if (cu->loopsv->len == 0) return C_STRAY_REPEAT;
 	cu->loopsv->len--;
-	return addopwopnd(OP_PJNZ, &cu->loops[cu->loopsv->len], sizeof(size_t), dstv);
+	struct cunitloop *loop = cu->loops + cu->loopsv->len;
+	uint8_t *         body = *dstv->itemsp;
+
+	if (loop->haswhile) {
+		*(size_t *) &body[loop->_while + 1] = dstv->len + 1 + sizeof(size_t);
+	}
+
+	for (size_t i = 0; i < loop->breaksv->len; i++) {
+		*(size_t *) &body[loop->breaks[i] + 1] = dstv->len + 1 + sizeof(size_t);
+	}
+	vfree(loop->breaksv);
+
+	return addopwopnd(OP_JP, &loop->begin, sizeof(size_t), dstv);
 }
 
 #define CALLC_OP(k, f) \
@@ -197,6 +235,8 @@ static int addwhile(cunit *cu, vecbk *dstv) {
 		callable *fp = &f; \
 		return addopwopnd(OP_CALLC, &fp, sizeof(fp), dstv); \
 	}
+
+#define MACRO(s) compile(cu, s, strlen(s))
 
 int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	// string pushes
@@ -221,8 +261,12 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	if (strkeq("if", tk, len)) return addif(cu, dstv);
 	if (strkeq("else", tk, len)) return addelse(cu, dstv);
 	if (strkeq("then", tk, len)) return addthen(cu, dstv);
-	if (strkeq("repeat", tk, len)) return addrepeat(cu, dstv);
+
+	if (strkeq("begin", tk, len)) return addbegin(cu, dstv);
 	if (strkeq("while", tk, len)) return addwhile(cu, dstv);
+	if (strkeq("until", tk, len)) return MACRO("not while");
+	if (strkeq("break", tk, len)) return addbreak(cu, dstv);
+	if (strkeq("repeat", tk, len)) return addrepeat(cu, dstv);
 
 	// builtins implemented by C functions/callc ops
 	if (!dlmain) {
@@ -247,6 +291,7 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	CALLC_OP("/", builtin_div);
 	CALLC_OP("=", builtin_eq);
 	CALLC_OP("<", builtin_lt);
+	CALLC_OP(">", builtin_gt);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->defsv->len; i++) {
@@ -489,13 +534,14 @@ int closecunit(cunit *cu) {
 		return C_UNTERM_LINK;
 	default:
 		if (cu->ifsv->len) return C_UNTERM_IF;
+		if (cu->loopsv->len) return C_UNTERM_REPEAT;
 	}
 
 	return C_OK;
 }
 
 bool isrunnable(cunit *cu) {
-	return cu->state == CS_MAIN && !cu->incomment && !cu->ifsv->len;
+	return cu->state == CS_MAIN && !cu->incomment && !cu->ifsv->len && !cu->loopsv->len;
 }
 
 cunit *compilefile(FILE *file, char *name, char *dir) {
@@ -592,8 +638,20 @@ void pcerror(int err) {
 	case C_DUP_PREFIX:
 		fputs("Duplicate prefix\n", stderr);
 		break;
+	case C_STRAY_REPEAT:
+		fputs("REPEAT with no BEGIN\n", stderr);
+		break;
+	case C_STRAY_BREAK:
+		fputs("BREAK with no BEGIN\n", stderr);
+		break;
 	case C_STRAY_WHILE:
-		fputs("WHILE with no REPEAT\n", stderr);
+		fputs("WHILE/UNTIL with no BEGIN\n", stderr);
+		break;
+	case C_DUP_WHILE:
+		fputs("Multiple WHILE/UNTIL in a single loop\n", stderr);
+		break;
+	case C_UNTERM_REPEAT:
+		fputs("BEGIN with no REPEAT\n", stderr);
 		break;
 	}
 }

@@ -19,6 +19,9 @@ int builtin_div(void);
 
 int builtin_eq(void);
 int builtin_lt(void);
+int builtin_gt(void);
+
+int builtin_not(void);
 
 int builtin_strlen(void);
 int builtin_strcat(void);
