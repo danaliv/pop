@@ -40,4 +40,4 @@ The code between `begin` and `while` is expected to leave an integer on the
 stack that indicates whether to execute the loop. You can use `until` instead
 of `while` to reverse the meaning.
 
-(examples/fib.pop)[../examples/fib.pop] contains an example of a loop.
+[examples/fib.pop](../examples/fib.pop) contains an example of a loop.
