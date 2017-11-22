@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <libgen.h>
 #include <limits.h>
@@ -13,6 +14,8 @@
 #include "fgetln.h"
 #include "link.h"
 #include "memory.h"
+
+static void *dlmain = NULL;
 
 cunit *newcunit(char *dir) {
 	cunit *cu = xmalloc(sizeof(cunit));
@@ -206,26 +209,27 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	if (strkeq("then", tk, len)) return addthen(cu, dstv);
 
 	// builtins implemented by C functions/callc ops
-	CALLC_OP("pop", builtin_pop);
-	CALLC_OP("swap", builtin_swap);
-	CALLC_OP("dup", builtin_dup);
-	CALLC_OP("rot", builtin_rot);
-	CALLC_OP("rotate", builtin_rotate);
-	CALLC_OP("over", builtin_over);
-	CALLC_OP("pick", builtin_pick);
-	CALLC_OP("getenv", builtin_getenv);
-	CALLC_OP("puts", builtin_puts);
+	if (!dlmain) {
+#ifdef RTLD_MAIN_ONLY
+		dlmain = RTLD_MAIN_ONLY;
+#else
+		dlmain = dlopen(NULL, RTLD_LAZY);
+#endif
+	}
+
+	char sym[len + 9];
+	strcpy(sym, "builtin_");
+	strncat(sym, tk, len);
+
+	callable *fn = (callable *) dlsym(dlmain, sym);
+	if (fn) return addopwopnd(OP_CALLC, &fn, sizeof(callable *), dstv);
+
 	CALLC_OP(".", builtin_puts);
 	CALLC_OP("+", builtin_add);
 	CALLC_OP("-", builtin_sub);
 	CALLC_OP("*", builtin_mul);
 	CALLC_OP("/", builtin_div);
 	CALLC_OP("=", builtin_eq);
-	CALLC_OP("strlen", builtin_strlen);
-	CALLC_OP("strcat", builtin_strcat);
-
-	CALLC_OP("DEBUG_stack", builtin_DEBUG_stack);
-	CALLC_OP("DEBUG_puts_all", builtin_DEBUG_puts_all);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->defsv->len; i++) {
