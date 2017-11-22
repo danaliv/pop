@@ -25,6 +25,7 @@ cunit *newcunit(char *dir) {
 	cu->varsv = newvec(4, sizeof(char *), (void **) &cu->vars);
 	cu->defsv = newvec(4, sizeof(struct cunitdef), (void **) &cu->defs);
 	cu->ifsv = newvec(4, sizeof(struct cunitif), (void **) &cu->ifs);
+	cu->loopsv = newvec(4, sizeof(size_t), (void **) &cu->loops);
 	cu->dir = xstrdup(realpath(dir, NULL));
 	cu->linksv = newvec(4, sizeof(struct link), (void **) &cu->links);
 	return cu;
@@ -51,6 +52,7 @@ void freecunit(cunit *cu) {
 
 	vfree(cu->mainv);
 	vfree(cu->ifsv);
+	vfree(cu->loopsv);
 	free(cu->dir);
 
 	free(cu);
@@ -178,6 +180,18 @@ static int addthen(cunit *cu, vecbk *dstv) {
 	return C_OK;
 }
 
+static int addrepeat(cunit *cu, vecbk *dstv) {
+	vadd(cu->loopsv);
+	cu->loops[cu->loopsv->len - 1] = dstv->len;
+	return C_OK;
+}
+
+static int addwhile(cunit *cu, vecbk *dstv) {
+	if (cu->loopsv->len == 0) return C_STRAY_WHILE;
+	cu->loopsv->len--;
+	return addopwopnd(OP_PJNZ, &cu->loops[cu->loopsv->len], sizeof(size_t), dstv);
+}
+
 #define CALLC_OP(k, f) \
 	if (strkeq(k, tk, len)) { \
 		callable *fp = &f; \
@@ -207,6 +221,8 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	if (strkeq("if", tk, len)) return addif(cu, dstv);
 	if (strkeq("else", tk, len)) return addelse(cu, dstv);
 	if (strkeq("then", tk, len)) return addthen(cu, dstv);
+	if (strkeq("repeat", tk, len)) return addrepeat(cu, dstv);
+	if (strkeq("while", tk, len)) return addwhile(cu, dstv);
 
 	// builtins implemented by C functions/callc ops
 	if (!dlmain) {
@@ -230,6 +246,7 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	CALLC_OP("*", builtin_mul);
 	CALLC_OP("/", builtin_div);
 	CALLC_OP("=", builtin_eq);
+	CALLC_OP("<", builtin_lt);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->defsv->len; i++) {
@@ -574,6 +591,9 @@ void pcerror(int err) {
 		break;
 	case C_DUP_PREFIX:
 		fputs("Duplicate prefix\n", stderr);
+		break;
+	case C_STRAY_WHILE:
+		fputs("WHILE with no REPEAT\n", stderr);
 		break;
 	}
 }

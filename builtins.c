@@ -214,6 +214,17 @@ int builtin_eq(void) {
 	return E_OK;
 }
 
+int builtin_lt(void) {
+	STACK_HAS_2(F_INT, F_INT);
+
+	int lt = stack->down->i < stack->i;
+	pop();
+	pop();
+	pushi(lt);
+
+	return E_OK;
+}
+
 int builtin_strlen(void) {
 	STACK_HAS_1(F_STR);
 

@@ -37,6 +37,9 @@ typedef struct cunit {
 		bool   haselse;
 	} * ifs;
 
+	vecbk * loopsv;
+	size_t *loops;
+
 	char *        dir;
 	vecbk *       linksv;
 	struct link **links;
@@ -60,6 +63,7 @@ enum {
 	C_LINK_FAIL,
 	C_DUP_NAME,
 	C_DUP_PREFIX,
+	C_STRAY_WHILE,
 };
 
 cunit *newcunit(char *dir);
