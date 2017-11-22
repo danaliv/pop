@@ -214,6 +214,29 @@ int builtin_eq(void) {
 	return E_OK;
 }
 
+int builtin_strlen(void) {
+	STACK_HAS_1(F_STR);
+
+	int len = strlen(stack->s);
+	pop();
+	pushi(len);
+
+	return E_OK;
+}
+
+int builtin_strcat(void) {
+	STACK_HAS_2(F_STR, F_STR);
+
+	char s[strlen(stack->s) + strlen(stack->down->s) + 1];
+	strcpy(s, stack->down->s);
+	strcat(s, stack->s);
+	pop();
+	pop();
+	pushs(s);
+
+	return E_OK;
+}
+
 int builtin_DEBUG_stack(void) {
 	frame *f = stack;
 	while (f) {

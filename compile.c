@@ -221,6 +221,8 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	CALLC_OP("*", builtin_mul);
 	CALLC_OP("/", builtin_div);
 	CALLC_OP("=", builtin_eq);
+	CALLC_OP("strlen", builtin_strlen);
+	CALLC_OP("strcat", builtin_strcat);
 
 	CALLC_OP("DEBUG_stack", builtin_DEBUG_stack);
 	CALLC_OP("DEBUG_puts_all", builtin_DEBUG_puts_all);
