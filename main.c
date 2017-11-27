@@ -46,6 +46,9 @@ void printstack(cunit *cu) {
 			case F_REF:
 				printf("VAR#%s", cu->vars[f[i]->ref]);
 				break;
+			case F_OBJ:
+				printf("OBJ#%lx", (uintptr_t) f[i]->obj->obj);
+				break;
 			}
 		}
 	}

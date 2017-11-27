@@ -11,6 +11,8 @@ enum {
 	E_RANGE,
 };
 
+typedef void destructor(void *);
+
 typedef struct frame {
 	enum {
 		F_STR,
@@ -42,6 +44,7 @@ extern frame *stack;
 
 extern frame *pushs(char *);
 extern frame *pushi(int);
+extern frame *pushobj(void *, destructor *);
 extern void   pop();
 
 #endif

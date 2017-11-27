@@ -40,6 +40,9 @@ int builtin_dup(void) {
 	case F_REF:
 		pushref(stack->ref);
 		break;
+	case F_OBJ:
+		dupobj(stack->obj);
+		break;
 	}
 
 	return E_OK;
@@ -100,6 +103,9 @@ int builtin_pick(void) {
 	case F_REF:
 		pushref(f->ref);
 		break;
+	case F_OBJ:
+		dupobj(f->obj);
+		break;
 	}
 
 	return E_OK;
@@ -127,6 +133,9 @@ int builtin_puts(void) {
 		break;
 	case F_REF:
 		printf("VAR#%lu\n", stack->ref);
+		break;
+	case F_OBJ:
+		printf("OBJ#%lx\n", (uintptr_t) stack->obj->obj);
 		break;
 	}
 
@@ -204,6 +213,9 @@ int builtin_eq(void) {
 		break;
 	case F_REF:
 		eq = stack->ref == stack->down->ref ? 1 : 0;
+		break;
+	case F_OBJ:
+		eq = stack->obj->obj == stack->down->obj->obj ? 1 : 0;
 		break;
 	}
 
@@ -283,6 +295,9 @@ int builtin_DEBUG_stack(void) {
 		case F_REF:
 			printf("    tp = F_REF\n");
 			break;
+		case F_OBJ:
+			printf("    tp = F_OBJ\n");
+			break;
 		}
 		if (f->s) {
 			printf("    s = 0x%016lx \"%s\"\n", (uintptr_t) f->s, f->s);
@@ -292,7 +307,14 @@ int builtin_DEBUG_stack(void) {
 		printf("    i = %d\n", f->i);
 		printf("    ref = VAR#%lu\n", f->ref);
 		printf("    down = 0x%016lx\n", (uintptr_t) f->down);
-		printf("}\n");
+		printf("    obj = {");
+		if (f->obj) {
+			printf("\n        obj = 0x%016lx\n", (uintptr_t) f->obj->obj);
+			printf("        destruct = 0x%016lx\n", (uintptr_t) f->obj->destruct);
+			printf("        refs = %ld\n", f->obj->refs);
+			printf("    ");
+		}
+		printf("}\n}\n");
 		f = f->down;
 	}
 	return E_OK;

@@ -20,7 +20,7 @@ clean:
 	rm -f pop *.o *.d
 
 format:
-	$(CLANG_FORMAT) -i *.c *.h
+	$(CLANG_FORMAT) -i *.c *.h ext/*/*.c
 
 test: pop
 	ruby tests/runner.rb

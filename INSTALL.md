@@ -5,4 +5,5 @@ make sure you've also installed libbsd-dev or libbsd-devel (depending on your
 distribution).
 
 Running tests is optional but if you want to run them you'll need a reasonably
-up-to-date Ruby.
+up-to-date Ruby, plus the latest minitest gem depending on how old your Ruby
+is.

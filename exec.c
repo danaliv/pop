@@ -149,13 +149,33 @@ static int op_store(exctx *ctx) {
 	STACK_HAS_1(F_REF);
 	if (!stack->down) return E_UNDERFLOW;
 
-	if (ctx->vars[stack->ref].tp == F_STR) {
+	switch (ctx->vars[stack->ref].tp) {
+	case F_STR:
 		free(ctx->vars[stack->ref].s);
+		break;
+	case F_OBJ:
+		if (--ctx->vars[stack->ref].obj->refs == 0) {
+			ctx->vars[stack->ref].obj->destruct(ctx->vars[stack->ref].obj->obj);
+			free(ctx->vars[stack->ref].obj);
+		}
+		break;
+	default:
+		// no special processing needed for other data types
+		break;
 	}
 
 	ctx->vars[stack->ref] = *stack->down;
-	if (stack->down->tp == F_STR) {
+
+	switch (stack->down->tp) {
+	case F_STR:
 		ctx->vars[stack->ref].s = xstrdup(stack->down->s);
+		break;
+	case F_OBJ:
+		ctx->vars[stack->ref].obj->refs++;
+		break;
+	default:
+		// no special processing needed for other data types
+		break;
 	}
 
 	pop();

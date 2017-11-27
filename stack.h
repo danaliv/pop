@@ -1,15 +1,25 @@
 #ifndef __STACK_H__
 #define __STACK_H__
 
+typedef void destructor(void *);
+
+typedef struct {
+	void *      obj;
+	destructor *destruct;
+	size_t      refs;
+} object;
+
 typedef struct frame {
 	enum {
 		F_STR,
 		F_INT,
 		F_REF,
+		F_OBJ,
 	} tp;
 	char *        s;
 	int           i;
 	size_t        ref;
+	object *      obj;
 	struct frame *down;
 } frame;
 
@@ -35,6 +45,8 @@ extern frame *stack;
 frame *pushs(char *);
 frame *pushi(int);
 frame *pushref(size_t);
+frame *pushobj(void *, destructor *);
+frame *dupobj(object *);
 void   pop();
 
 frame *copyframe(frame *);
