@@ -12,7 +12,7 @@ enum {
 	OP_DUP,
 	OP_PUSHS,
 	OP_PUSHI,
-	OP_PUSHREF,
+	OP_PUSHV,
 	OP_CALLI,
 	OP_CALLIX,
 	OP_CALLC,
@@ -31,11 +31,11 @@ enum {
 };
 
 typedef struct {
-	vecbk *varsv;
-	frame *vars;
+	vecbk * varsv;
+	value **vars;
 } exctx;
 
-typedef int callable(void);
+typedef int callable();
 
 exctx *newexctx();
 void   freeexctx(exctx *);

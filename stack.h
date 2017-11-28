@@ -1,25 +1,10 @@
 #ifndef __STACK_H__
 #define __STACK_H__
 
-typedef void destructor(void *);
-
-typedef struct {
-	void *      obj;
-	destructor *destruct;
-	size_t      refs;
-} object;
+#include "value.h"
 
 typedef struct frame {
-	enum {
-		F_STR,
-		F_INT,
-		F_REF,
-		F_OBJ,
-	} tp;
-	char *        s;
-	int           i;
-	size_t        ref;
-	object *      obj;
+	value *       v;
 	struct frame *down;
 } frame;
 
@@ -32,26 +17,24 @@ extern frame *stack;
 
 #define STACK_HAS_1(typ) \
 	if (!stack) return E_UNDERFLOW; \
-	if (stack->tp != (typ)) return E_TYPE;
+	if (stack->v->tp != (typ)) return E_TYPE;
 
 #define STACK_HAS_2_ANY \
 	if (!stack || !stack->down) return E_UNDERFLOW;
 
 #define STACK_HAS_2(tp1, tp2) \
 	if (!stack || !stack->down) return E_UNDERFLOW; \
-	if (stack->tp != (tp1)) return E_TYPE; \
-	if (stack->down->tp != (tp2)) return E_TYPE;
+	if (stack->v->tp != (tp1)) return E_TYPE; \
+	if (stack->down->v->tp != (tp2)) return E_TYPE;
 
-frame *pushs(char *);
-frame *pushi(int);
-frame *pushref(size_t);
-frame *pushobj(void *, destructor *);
-frame *dupobj(object *);
-void   pop();
+void push(value *); // retains
+void pushstr(char *);
+void pushint(int);
+void pushvar(size_t);
+void pushref(void *, destructor *);
 
-frame *copyframe(frame *);
-void   freeframe(frame *);
-
-void popall();
+value *pop(); // does not release
+int    popint();
+size_t popvar();
 
 #endif

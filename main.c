@@ -36,19 +36,15 @@ void printstack(cunit *cu) {
 	for (int i = 1; i < 4; i++) {
 		if (f[i - 1]) putchar(' ');
 		if (f[i]) {
-			switch (f[i]->tp) {
-			case F_STR:
-				printf("\"%s\"", f[i]->s);
+			switch (f[i]->v->tp) {
+			case TSTR:
+				printf("\"%s\"", STR(f[i]->v));
 				break;
-			case F_INT:
-				printf("%d", f[i]->i);
+			case TVAR:
+				printf("VAR#%s", cu->vars[VAR(f[i]->v)]);
 				break;
-			case F_REF:
-				printf("VAR#%s", cu->vars[f[i]->ref]);
-				break;
-			case F_OBJ:
-				printf("OBJ#%lx", (uintptr_t) f[i]->obj->obj);
-				break;
+			default:
+				printf("%s", vtos(f[i]->v));
 			}
 		}
 	}
@@ -135,7 +131,7 @@ int evalstr(char *str) {
 		return EX_DATAERR;
 	}
 
-	popall();
+	while (stack) release(pop());
 	freecunit(cu);
 	return EX_OK;
 }

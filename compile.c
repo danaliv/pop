@@ -304,7 +304,7 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	// variable reference pushes
 	for (size_t i = 0; i < cu->varsv->len; i++) {
 		if (strkeq(cu->vars[i], tk, len)) {
-			return addopwopnd(OP_PUSHREF, &i, sizeof(i), dstv);
+			return addopwopnd(OP_PUSHV, &i, sizeof(i), dstv);
 		}
 	}
 

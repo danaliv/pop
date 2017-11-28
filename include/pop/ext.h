@@ -11,17 +11,33 @@ enum {
 	E_RANGE,
 };
 
+typedef enum {
+	TSTR,
+	TINT,
+	TVAR,
+	TREF,
+} valtype;
+
 typedef void destructor(void *);
 
+typedef struct {
+	valtype     tp;
+	destructor *onfree;
+	size_t      refs;
+	union {
+		void * p;
+		int    i;
+		size_t u;
+	} val;
+} value;
+
+#define STR(v) ((char *) (v)->val.p)
+#define INT(v) ((v)->val.i)
+#define VAR(v) ((v)->val.u)
+#define REF(v) ((v)->val.p)
+
 typedef struct frame {
-	enum {
-		F_STR,
-		F_INT,
-		F_REF,
-	} tp;
-	char *        s;
-	int           i;
-	size_t        ref;
+	value *       v;
 	struct frame *down;
 } frame;
 
@@ -32,19 +48,21 @@ extern frame *stack;
 
 #define STACK_HAS_1(typ) \
 	if (!stack) return E_UNDERFLOW; \
-	if (stack->tp != (typ)) return E_TYPE;
+	if (stack->v->tp != (typ)) return E_TYPE;
 
 #define STACK_HAS_2_ANY \
 	if (!stack || !stack->down) return E_UNDERFLOW;
 
 #define STACK_HAS_2(tp1, tp2) \
 	if (!stack || !stack->down) return E_UNDERFLOW; \
-	if (stack->tp != (tp1)) return E_TYPE; \
-	if (stack->down->tp != (tp2)) return E_TYPE;
+	if (stack->v->tp != (tp1)) return E_TYPE; \
+	if (stack->down->v->tp != (tp2)) return E_TYPE;
 
-extern frame *pushs(char *);
-extern frame *pushi(int);
-extern frame *pushobj(void *, destructor *);
-extern void   pop();
+extern void pushstr(char *);
+extern void pushint(int);
+extern void pushref(void *, destructor *);
+
+extern value *pop();
+extern void   release(value *);
 
 #endif

@@ -9,15 +9,13 @@
 
 exctx *newexctx() {
 	exctx *ctx = xmalloc(sizeof(exctx));
-	ctx->varsv = newvec(4, sizeof(frame), (void **) &ctx->vars);
+	ctx->varsv = newvec(4, sizeof(value *), (void **) &ctx->vars);
 	return ctx;
 }
 
 void freeexctx(exctx *ctx) {
 	for (size_t i = 0; i < ctx->varsv->len; i++) {
-		if (ctx->vars[i].tp == F_STR) {
-			free(ctx->vars[i].s);
-		}
+		release(ctx->vars[i]);
 	}
 	vfree(ctx->varsv);
 	free(ctx);
@@ -71,13 +69,8 @@ static int op_callix(cunit *cu, vecbk *bodyv, size_t *ip) {
 }
 
 static int op_fetch(exctx *ctx) {
-	STACK_HAS_1(F_REF);
-
-	frame *f = copyframe(&ctx->vars[stack->ref]);
-	pop();
-	f->down = stack;
-	stack = f;
-
+	STACK_HAS_1(TVAR);
+	push(ctx->vars[popvar()]);
 	return E_OK;
 }
 
@@ -94,15 +87,14 @@ static int op_jp(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_pjz(vecbk *bodyv, size_t *ip) {
-	STACK_HAS_1(F_INT);
+	STACK_HAS_1(TINT);
 
-	if (stack->i) {
-		pop();
+	int n = popint();
+	if (n) {
 		(*ip) += sizeof(size_t);
 		return E_OK;
 	}
 
-	pop();
 	return op_jp(bodyv, ip);
 }
 
@@ -113,20 +105,20 @@ static int op_pushi(vecbk *bodyv, size_t *ip) {
 
 	const uint8_t *body = *bodyv->itemsp;
 
-	pushi(*(int *) &body[*ip + 1]);
+	pushint(*(int *) &body[*ip + 1]);
 	(*ip) += sizeof(int);
 
 	return E_OK;
 }
 
-static int op_pushref(vecbk *bodyv, size_t *ip) {
+static int op_pushvar(vecbk *bodyv, size_t *ip) {
 	if (*ip > bodyv->len - (sizeof(size_t) + 1)) {
 		bcabort();
 	}
 
 	const uint8_t *body = *bodyv->itemsp;
 
-	pushref(*(size_t *) &body[*ip + 1]);
+	pushvar(*(size_t *) &body[*ip + 1]);
 	(*ip) += sizeof(size_t);
 
 	return E_OK;
@@ -137,7 +129,7 @@ static int op_pushs(vecbk *bodyv, size_t *ip) {
 
 	const uint8_t *body = *bodyv->itemsp;
 
-	pushs((char *) &body[*ip + 1]);
+	pushstr((char *) &body[*ip + 1]);
 	while (body[*ip]) {
 		++*ip;
 	}
@@ -146,40 +138,12 @@ static int op_pushs(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_store(exctx *ctx) {
-	STACK_HAS_1(F_REF);
+	STACK_HAS_1(TVAR);
 	if (!stack->down) return E_UNDERFLOW;
 
-	switch (ctx->vars[stack->ref].tp) {
-	case F_STR:
-		free(ctx->vars[stack->ref].s);
-		break;
-	case F_OBJ:
-		if (--ctx->vars[stack->ref].obj->refs == 0) {
-			ctx->vars[stack->ref].obj->destruct(ctx->vars[stack->ref].obj->obj);
-			free(ctx->vars[stack->ref].obj);
-		}
-		break;
-	default:
-		// no special processing needed for other data types
-		break;
-	}
-
-	ctx->vars[stack->ref] = *stack->down;
-
-	switch (stack->down->tp) {
-	case F_STR:
-		ctx->vars[stack->ref].s = xstrdup(stack->down->s);
-		break;
-	case F_OBJ:
-		ctx->vars[stack->ref].obj->refs++;
-		break;
-	default:
-		// no special processing needed for other data types
-		break;
-	}
-
-	pop();
-	pop();
+	size_t var = popvar();
+	release(ctx->vars[var]);
+	ctx->vars[var] = pop();
 
 	return E_OK;
 }
@@ -213,8 +177,8 @@ static int runv(cunit *cu, vecbk *bodyv, exctx *ctx) {
 		case OP_PUSHI:
 			res = op_pushi(bodyv, &i);
 			break;
-		case OP_PUSHREF:
-			res = op_pushref(bodyv, &i);
+		case OP_PUSHV:
+			res = op_pushvar(bodyv, &i);
 			break;
 		case OP_PUSHS:
 			res = op_pushs(bodyv, &i);
@@ -239,8 +203,7 @@ int run(cunit *cu, exctx *ctx) {
 		size_t oldlen = ctx->varsv->len;
 		vaddn(ctx->varsv, cu->varsv->len - ctx->varsv->len);
 		for (size_t i = oldlen; i < ctx->varsv->len; i++) {
-			ctx->vars[i].tp = F_INT;
-			ctx->vars[i].i = 0;
+			ctx->vars[i] = newint(0);
 		}
 	}
 
