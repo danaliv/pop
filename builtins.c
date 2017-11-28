@@ -84,10 +84,17 @@ int builtin_over() {
 int builtin_getenv() {
 	STACK_HAS_1(TSTR);
 
-	value *s = pop();
-	char * val = getenv(STR(s));
-	pushstr(val ? val : "");
-	release(s);
+	value *v = pop();
+	char * val = getenv(STR(v));
+	release(v);
+
+	if (val) {
+		v = newstr(val);
+		pushopt(v);
+		release(v);
+	} else {
+		pushopt(NULL);
+	}
 
 	return E_OK;
 }
@@ -223,6 +230,21 @@ int builtin_strcat() {
 
 	release(s1);
 	release(s2);
+	return E_OK;
+}
+
+int builtin_none() {
+	pushopt(NULL);
+	return E_OK;
+}
+
+int builtin_some() {
+	STACK_HAS_1_ANY;
+
+	value *v = pop();
+	pushopt(v);
+	release(v);
+
 	return E_OK;
 }
 

@@ -87,15 +87,29 @@ static int op_jp(vecbk *bodyv, size_t *ip) {
 }
 
 static int op_pjz(vecbk *bodyv, size_t *ip) {
-	STACK_HAS_1(TINT);
+	STACK_HAS_1_ANY;
 
-	int n = popint();
-	if (n) {
-		(*ip) += sizeof(size_t);
-		return E_OK;
+	value *v = pop();
+	int    iszero;
+	switch (v->tp) {
+	case TINT:
+		iszero = INT(v) == 0;
+		break;
+	case TOPT:
+		iszero = OPT(v) == NULL;
+		if (OPT(v)) push(OPT(v));
+		break;
+	default:
+		release(v);
+		return E_TYPE;
 	}
+	release(v);
 
-	return op_jp(bodyv, ip);
+	if (iszero) {
+		return op_jp(bodyv, ip);
+	}
+	(*ip) += sizeof(size_t);
+	return E_OK;
 }
 
 static int op_pushi(vecbk *bodyv, size_t *ip) {

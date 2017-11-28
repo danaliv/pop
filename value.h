@@ -8,6 +8,7 @@ typedef enum {
 	TINT,
 	TVAR,
 	TREF,
+	TOPT,
 } valtype;
 
 typedef void destructor(void *);
@@ -27,11 +28,13 @@ typedef struct {
 #define INT(v) ((v)->val.i)
 #define VAR(v) ((v)->val.u)
 #define REF(v) ((v)->val.p)
+#define OPT(v) ((value *) (v)->val.p)
 
 value *newstr(char *);
 value *newint(int);
 value *newvar(size_t);
 value *newref(void *, destructor *);
+value *newopt(value *);
 
 value *retain(value *);
 void   release(value *);

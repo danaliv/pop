@@ -61,8 +61,12 @@ extern frame *stack;
 extern void pushstr(char *);
 extern void pushint(int);
 extern void pushref(void *, destructor *);
+extern void pushopt(value *);
 
 extern value *pop();
-extern void   release(value *);
+
+extern value *newref(void *, destructor *);
+
+extern void release(value *);
 
 #endif

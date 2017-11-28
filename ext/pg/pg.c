@@ -2,11 +2,19 @@
 #include <pop/ext.h>
 
 int POP_connect() {
-	STACK_HAS_1(F_STR);
+	STACK_HAS_1(TSTR);
 
-	PGconn *conn = PQconnectdb(stack->s);
-	pop();
-	pushobj(conn, (destructor *) PQfinish);
+	value * v = pop();
+	PGconn *conn = PQconnectdb(STR(v));
+	release(v);
+
+	if (conn) {
+		v = newref(conn, (destructor *) PQfinish);
+		pushopt(v);
+		release(v);
+	} else {
+		pushopt(NULL);
+	}
 
 	return E_OK;
 }

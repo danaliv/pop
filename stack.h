@@ -32,6 +32,7 @@ void pushstr(char *);
 void pushint(int);
 void pushvar(size_t);
 void pushref(void *, destructor *);
+void pushopt(value *);
 
 value *pop(); // does not release
 int    popint();

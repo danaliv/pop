@@ -38,6 +38,12 @@ void pushref(void *ref, destructor *onfree) {
 	release(v);
 }
 
+void pushopt(value *v1) {
+	value *v = newopt(v1);
+	push(v);
+	release(v);
+}
+
 value *pop() {
 	frame *f = stack;
 	value *v = stack->v;

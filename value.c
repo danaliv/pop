@@ -1,5 +1,7 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "memory.h"
 #include "value.h"
@@ -38,6 +40,15 @@ value *newref(void *p, destructor *onfree) {
 	return v;
 }
 
+value *newopt(value *v1) {
+	value *v = xcalloc(1, sizeof(value));
+	v->tp = TOPT;
+	v->onfree = v1 ? (destructor *) release : NULL;
+	v->refs = 1;
+	v->val.p = v1 ? retain(v1) : NULL;
+	return v;
+}
+
 value *retain(value *v) {
 	v->refs++;
 	return v;
@@ -63,6 +74,13 @@ char *vtos(value *v) {
 		break;
 	case TREF:
 		sprintf(s, "REF#%lx", (uintptr_t) REF(v));
+		break;
+	case TOPT:
+		if (v->val.p) {
+			sprintf(s, "OPT#some");
+		} else {
+			strcpy(s, "OPT#none");
+		}
 		break;
 	default:
 		return NULL;
