@@ -3,7 +3,7 @@ class TestOS < Test
         ENV["POP_TEST_GETENV"] = "góðan daginn"
         assert_output '"POP_TEST_GETENV" getenv if then', "góðan daginn\n"
         ENV.delete("POP_TEST_GETENV")
-        assert_output '"POP_TEST_GETENV" getenv', "OPT#none\n"
+        assert_output '"POP_TEST_GETENV" getenv', "(null)\n"
         assert_error "getenv", "Stack underflow\n"
         assert_error "0 getenv", "Wrong type(s) on stack\n"
     end

@@ -40,5 +40,6 @@ value *retain(value *);
 void   release(value *);
 
 char *vtos(value *);
+char *inspect(value *, char **);
 
 #endif

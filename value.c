@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,21 +70,88 @@ char *vtos(value *v) {
 	case TINT:
 		sprintf(s, "%d", INT(v));
 		break;
+	case TOPT:
+		if (OPT(v)) {
+			return vtos(OPT(v));
+		} else {
+			return NULL;
+		}
+	default:
+		return NULL;
+	}
+	return s;
+}
+
+char *inspectstr(char *s) {
+	size_t len = 2;
+	size_t i, j;
+
+	for (i = 0; s[i]; i++) {
+		switch (s[i]) {
+		case '"':
+		case '\n':
+		case '\\':
+			len++;
+		default:
+			len++;
+		}
+	}
+
+	char *s2 = xmalloc(len + 1);
+	*s2 = '"';
+
+	for (i = 0, j = 1; s[i]; i++, j++) {
+		switch (s[i]) {
+		case '\n':
+			s2[j++] = '\\';
+			s2[j] = 'n';
+			break;
+		case '"':
+		case '\\':
+			s2[j++] = '\\';
+		default:
+			s2[j] = s[i];
+		}
+	}
+	s2[j++] = '"';
+	s2[j] = '\0';
+
+	return s2;
+}
+
+char *inspect(value *v, char **vars) {
+	char *s;
+
+	switch (v->tp) {
+	case TSTR:
+		s = inspectstr(STR(v));
+		break;
+	case TINT:
+		s = xmalloc(64);
+		sprintf(s, "%d", INT(v));
+		break;
 	case TVAR:
-		sprintf(s, "VAR#%lu", VAR(v));
+		s = xmalloc(5 + strlen(vars[VAR(v)]));
+		sprintf(s, "VAR#%s", vars[VAR(v)]);
 		break;
 	case TREF:
+		s = xmalloc(64);
 		sprintf(s, "REF#%lx", (uintptr_t) REF(v));
 		break;
 	case TOPT:
-		if (v->val.p) {
-			sprintf(s, "OPT#some");
+		if (OPT(v)) {
+			char *s2 = inspect(OPT(v), vars);
+			s = xmalloc(5 + strlen(s2));
+			sprintf(s, "OPT#%s", s2);
+			free(s2);
 		} else {
+			s = xmalloc(9);
 			strcpy(s, "OPT#none");
 		}
 		break;
 	default:
-		return NULL;
+		s = NULL;
 	}
+
 	return s;
 }

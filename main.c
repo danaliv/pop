@@ -36,16 +36,9 @@ void printstack(cunit *cu) {
 	for (int i = 1; i < 4; i++) {
 		if (f[i - 1]) putchar(' ');
 		if (f[i]) {
-			switch (f[i]->v->tp) {
-			case TSTR:
-				printf("\"%s\"", STR(f[i]->v));
-				break;
-			case TVAR:
-				printf("VAR#%s", cu->vars[VAR(f[i]->v)]);
-				break;
-			default:
-				printf("%s", vtos(f[i]->v));
-			}
+			char *s = inspect(f[i]->v, cu->vars);
+			printf("%s", s);
+			free(s);
 		}
 	}
 
