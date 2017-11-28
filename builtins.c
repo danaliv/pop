@@ -103,7 +103,8 @@ int builtin_puts() {
 	STACK_HAS_1_ANY;
 
 	value *v = pop();
-	printf("%s\n", vtos(v));
+	char * s = vtos(v);
+	if (s) printf("%s\n", s);
 	release(v);
 
 	return E_OK;
