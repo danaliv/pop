@@ -65,8 +65,14 @@ extern void pushopt(value *);
 
 extern value *pop();
 
+extern value *newstr(char *);
+extern value *newint(int);
 extern value *newref(void *, destructor *);
+extern value *newopt(value *);
 
 extern void release(value *);
+
+#define xmalloc _xmalloc
+extern void *_xmalloc(size_t);
 
 #endif
