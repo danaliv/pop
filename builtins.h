@@ -9,5 +9,7 @@ int builtin_div();
 int builtin_eq();
 int builtin_lt();
 int builtin_gt();
+int builtin_mark();
+int builtin_mkarray();
 
 #endif

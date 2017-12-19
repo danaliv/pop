@@ -9,6 +9,8 @@ typedef enum {
 	TVAR,
 	TREF,
 	TOPT,
+	TARY,
+	TMRK,
 } valtype;
 
 typedef void destructor(void *);
@@ -22,6 +24,7 @@ typedef struct {
 		int    i;
 		size_t u;
 	} val;
+	void *p2;
 } value;
 
 #define STR(v) ((char *) (v)->val.p)
@@ -35,9 +38,15 @@ value *newint(int);
 value *newvar(size_t);
 value *newref(void *, destructor *);
 value *newopt(value *);
+value *newary();
+value *newmrk();
 
 value *retain(value *);
 void   release(value *);
+
+size_t arylen(value *);
+value *aryget(value *, size_t);
+void   aryadd(value *ary, value *v);
 
 char *vtos(value *);
 char *inspect(value *, char **);

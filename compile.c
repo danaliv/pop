@@ -292,6 +292,8 @@ int addinstr(cunit *cu, char *tk, size_t len, vecbk *dstv) {
 	CALLC_OP("=", builtin_eq);
 	CALLC_OP("<", builtin_lt);
 	CALLC_OP(">", builtin_gt);
+	CALLC_OP("{", builtin_mark);
+	CALLC_OP("}array", builtin_mkarray);
 
 	// calls to user-defined words
 	for (size_t i = 0; i < cu->defsv->len; i++) {

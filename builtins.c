@@ -103,8 +103,15 @@ int builtin_puts() {
 	STACK_HAS_1_ANY;
 
 	value *v = pop();
-	char * s = vtos(v);
-	if (s) printf("%s\n", s);
+	if (v->tp == TARY) {
+		for (size_t i = 0; i < arylen(v); i++) {
+			char *s = vtos(aryget(v, i));
+			if (s) printf("%s\n", s);
+		}
+	} else {
+		char *s = vtos(v);
+		if (s) printf("%s\n", s);
+	}
 	release(v);
 
 	return E_OK;
@@ -202,6 +209,44 @@ int builtin_gt() {
 	pushint(n1 > n2);
 
 	return E_OK;
+}
+
+int builtin_mark() {
+	value *v = newmrk();
+	push(v);
+	release(v);
+	return E_OK;
+}
+
+static int mkarray_collect(value *ary, frame *f) {
+	if (!f) {
+		release(ary);
+		return E_UNDERFLOW;
+	}
+	if (f->v->tp == TMRK) {
+		return E_OK;
+	}
+
+	int res = mkarray_collect(ary, f->down);
+	if (res == E_OK) {
+		aryadd(ary, f->v);
+	}
+	return res;
+}
+
+int builtin_mkarray() {
+	if (!stack) return E_UNDERFLOW;
+
+	value *ary = newary();
+	int    res = mkarray_collect(ary, stack);
+	if (res == E_OK) {
+		while (stack->v->tp != TMRK) release(pop());
+		release(pop());
+		push(ary);
+		release(ary);
+	}
+
+	return res;
 }
 
 int builtin_not() {

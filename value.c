@@ -50,6 +50,30 @@ value *newopt(value *v1) {
 	return v;
 }
 
+static void destroyary(vecbk *valuesbk) {
+	value **values = *(valuesbk->itemsp);
+	for (size_t i = 0; i < valuesbk->len; i++) {
+		release(values[i]);
+	}
+	vfree(valuesbk);
+}
+
+value *newary() {
+	value *v = xcalloc(1, sizeof(value));
+	v->tp = TARY;
+	v->onfree = (destructor *) destroyary;
+	v->refs = 1;
+	v->val.p = newvec(16, sizeof(value *), &v->p2);
+	return v;
+}
+
+value *newmrk() {
+	value *v = xcalloc(1, sizeof(value));
+	v->tp = TMRK;
+	v->refs = 1;
+	return v;
+}
+
 value *retain(value *v) {
 	v->refs++;
 	return v;
@@ -60,6 +84,20 @@ void release(value *v) {
 		if (v->onfree) v->onfree(v->val.p);
 		free(v);
 	}
+}
+
+size_t arylen(value *v) {
+	return ((vecbk *) v->val.p)->len;
+}
+
+value *aryget(value *v, size_t i) {
+	if (i >= arylen(v)) return NULL;
+	return ((value **) v->p2)[i];
+}
+
+void aryadd(value *ary, value *v) {
+	vadd(ary->val.p);
+	((value **) ary->p2)[arylen(ary) - 1] = retain(v);
 }
 
 char *vtos(value *v) {
@@ -120,7 +158,8 @@ char *inspectstr(char *s) {
 }
 
 char *inspect(value *v, char **vars) {
-	char *s;
+	char * s;
+	size_t i;
 
 	switch (v->tp) {
 	case TSTR:
@@ -148,6 +187,22 @@ char *inspect(value *v, char **vars) {
 			s = xmalloc(9);
 			strcpy(s, "OPT#none");
 		}
+		break;
+	case TARY:
+		s = xmalloc(3);
+		strcpy(s, "[");
+		for (i = 0; i < arylen(v); i++) {
+			char *s2 = inspect(aryget(v, i), vars);
+			s = xrealloc(s, strlen(s) + strlen(s2) + 3);
+			strcat(s, s2);
+			strcat(s, ", ");
+			free(s2);
+		}
+		if (i) s[strlen(s) - 2] = 0;
+		strcat(s, "]");
+		break;
+	case TMRK:
+		s = xstrdup("{");
 		break;
 	default:
 		s = NULL;
