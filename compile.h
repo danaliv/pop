@@ -1,5 +1,5 @@
-#ifndef __COMPILE_H__
-#define __COMPILE_H__
+#ifndef COMPILE_H
+#define COMPILE_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -39,7 +39,7 @@ typedef struct cunit {
 
 	vecbk *loopsv;
 	struct cunitloop {
-		size_t  begin, _while;
+		size_t  begini, whilei;
 		bool    haswhile;
 		vecbk * breaksv;
 		size_t *breaks;
@@ -86,4 +86,4 @@ cunit *compilefile(FILE *, char *name, char *dir);
 
 void pcerror(int);
 
-#endif
+#endif // COMPILE_H

@@ -1,5 +1,5 @@
-#ifndef __MEMORY_H__
-#define __MEMORY_H__
+#ifndef MEMORY_H
+#define MEMORY_H
 
 #include <stddef.h>
 
@@ -9,16 +9,16 @@
 #define xrealloc realloc
 #define xstrdup strdup
 #else
-#define xmalloc _xmalloc
-#define xcalloc _xcalloc
-#define xrealloc _xrealloc
-#define xstrdup _xstrdup
+#define xmalloc xmalloc_
+#define xcalloc xcalloc_
+#define xrealloc xrealloc_
+#define xstrdup xstrdup_
 #endif
 
-void *_xmalloc(size_t);
-void *_xcalloc(size_t, size_t);
-void *_xrealloc(void *, size_t);
-char *_xstrdup(char *);
+void *xmalloc_(size_t);
+void *xcalloc_(size_t, size_t);
+void *xrealloc_(void *, size_t);
+char *xstrdup_(char *);
 
 typedef struct {
 	size_t len, capacity, itemsize;
@@ -31,4 +31,4 @@ void   vfree(vecbk *);
 #define vadd(v) vaddn(v, 1)
 void *vaddn(vecbk *, size_t);
 
-#endif
+#endif // MEMORY_H

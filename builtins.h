@@ -1,5 +1,5 @@
-#ifndef __BUILTINS_H__
-#define __BUILTINS_H__
+#ifndef BUILTINS_H
+#define BUILTINS_H
 
 int builtin_puts();
 int builtin_add();
@@ -12,4 +12,4 @@ int builtin_gt();
 int builtin_mark();
 int builtin_mkarray();
 
-#endif
+#endif // BUILTINS_H

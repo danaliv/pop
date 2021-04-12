@@ -1,5 +1,5 @@
-#ifndef __VALUE_H__
-#define __VALUE_H__
+#ifndef VALUE_H
+#define VALUE_H
 
 #include <stddef.h>
 
@@ -51,4 +51,4 @@ void   aryadd(value *ary, value *v);
 char *vtos(value *);
 char *inspect(value *, char **);
 
-#endif
+#endif // VALUE_H

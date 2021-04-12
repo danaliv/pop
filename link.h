@@ -1,5 +1,5 @@
-#ifndef __LINK_H__
-#define __LINK_H__
+#ifndef LINK_H
+#define LINK_H
 
 #include <stdbool.h>
 
@@ -23,4 +23,4 @@ bool linkinv(char *, size_t, char **prefixp, char **namep);
 
 int addlinkcall(struct link *, vecbk *, char *);
 
-#endif
+#endif // LINK_H

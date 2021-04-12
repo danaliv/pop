@@ -1,5 +1,5 @@
-#ifndef __EXEC_H__
-#define __EXEC_H__
+#ifndef EXEC_H
+#define EXEC_H
 
 #include "compile.h"
 #include "memory.h"
@@ -44,4 +44,4 @@ int run(cunit *, exctx *);
 
 void prerror(int);
 
-#endif
+#endif // EXEC_H

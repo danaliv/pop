@@ -1,5 +1,5 @@
-#ifndef __POP_EXT_H__
-#define __POP_EXT_H__
+#ifndef POP_EXT_H
+#define POP_EXT_H
 
 #include <stddef.h>
 
@@ -72,7 +72,7 @@ extern value *newopt(value *);
 
 extern void release(value *);
 
-#define xmalloc _xmalloc
-extern void *_xmalloc(size_t);
+#define xmalloc xmalloc_
+extern void *xmalloc_(size_t);
 
-#endif
+#endif // POP_EXT_H

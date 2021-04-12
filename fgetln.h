@@ -1,5 +1,5 @@
-#ifndef __FGETLN_H__
-#define __FGETLN_H__
+#ifndef FGETLN_H
+#define FGETLN_H
 
 #if (defined(__unix__) || defined(unix)) && !defined(USG)
 #include <sys/param.h>
@@ -9,4 +9,4 @@
 #include <bsd/stdio.h>
 #endif
 
-#endif
+#endif // FGETLN_H

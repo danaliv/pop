@@ -1,5 +1,5 @@
-#ifndef __STACK_H__
-#define __STACK_H__
+#ifndef STACK_H
+#define STACK_H
 
 #include "value.h"
 
@@ -8,7 +8,7 @@ typedef struct frame {
 	struct frame *down;
 } frame;
 
-#ifndef __STACK_C__
+#ifndef STACK_C
 extern frame *stack;
 #endif
 
@@ -38,4 +38,4 @@ value *pop(); // does not release
 int    popint();
 size_t popvar();
 
-#endif
+#endif // STACK_H

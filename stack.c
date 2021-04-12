@@ -1,9 +1,9 @@
 #include <stdlib.h>
 
 #include "memory.h"
-#define __STACK_C__
+#define STACK_C
 #include "stack.h"
-#undef __STACK_C__
+#undef STACK_C
 
 frame *stack = NULL;
 

@@ -184,7 +184,7 @@ static int addbegin(cunit *cu, vecbk *dstv) {
 	vadd(cu->loopsv);
 	struct cunitloop *loop = cu->loops + cu->loopsv->len - 1;
 
-	loop->begin = dstv->len;
+	loop->begini = dstv->len;
 	loop->haswhile = false;
 	loop->breaksv = newvec(4, sizeof(size_t), (void **) &loop->breaks);
 
@@ -196,7 +196,7 @@ static int addwhile(cunit *cu, vecbk *dstv) {
 	struct cunitloop *loop = cu->loops + cu->loopsv->len - 1;
 	if (loop->haswhile) return C_DUP_WHILE;
 
-	loop->_while = dstv->len;
+	loop->whilei = dstv->len;
 	loop->haswhile = true;
 
 	return addopwopnd(OP_PJZ, &tmpaddr, sizeof(size_t), dstv);
@@ -219,7 +219,7 @@ static int addrepeat(cunit *cu, vecbk *dstv) {
 	uint8_t *         body = *dstv->itemsp;
 
 	if (loop->haswhile) {
-		*(size_t *) &body[loop->_while + 1] = dstv->len + 1 + sizeof(size_t);
+		*(size_t *) &body[loop->whilei + 1] = dstv->len + 1 + sizeof(size_t);
 	}
 
 	for (size_t i = 0; i < loop->breaksv->len; i++) {
@@ -227,7 +227,7 @@ static int addrepeat(cunit *cu, vecbk *dstv) {
 	}
 	vfree(loop->breaksv);
 
-	return addopwopnd(OP_JP, &loop->begin, sizeof(size_t), dstv);
+	return addopwopnd(OP_JP, &loop->begini, sizeof(size_t), dstv);
 }
 
 #define CALLC_OP(k, f) \
